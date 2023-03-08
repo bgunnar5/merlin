@@ -522,23 +522,20 @@ def setup_argparse() -> None:
         "-o",
         "--output_dir",
         type=str,
-        default=None,
-        help="Optional directory to place the default config file.\
-                            Default: ~/.merlin",
+        default="~/.merlin",
+        help="Optional directory to place the default config file.",
     )
     mconfig.add_argument(
         "--broker",
         type=str,
-        default=None,
-        help="Optional broker type, backend will be redis\
-                            Default: rabbitmq",
+        default="rabbitmq",
+        help="Optional broker type, backend will be redis.",
     )
     mconfig.add_argument(
         "--test",
         type=str,
-        default=None,
-        help="A config used in the testing suite (or for exemplative purposes).\
-                            Default: rabbitmq",
+        default="rabbitmq",
+        help="A config used in the testing suite (or for exemplative purposes).",
     )
 
     # merlin example
