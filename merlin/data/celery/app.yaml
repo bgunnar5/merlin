@@ -23,6 +23,7 @@
 #    - Volume Capacity: 5Gi should be enough
 # 10. Click on your new redis server you just created and fill
 #     in the results_backend section below with the appropriate information
+# 11. Run merlin info from the command line to make sure everything is working
 #
 # For more information see: 
 # https://lc.llnl.gov/confluence/display/MERLIN/LaunchIT+Configuration
