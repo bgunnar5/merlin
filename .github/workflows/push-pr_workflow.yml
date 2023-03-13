@@ -26,10 +26,10 @@ jobs:
     steps:
     - name: Compare test suites
       run: |
-        echo ${{ github.events.repository }}
-        echo ${{ github.repository }}
+        echo ${{ github.repository }} # bgunnar5/merlin -> LLNL/merlin
+        echo ${{ github }}
         echo $GITHUB_REPOSITORY
-        python check_for_test_updates.py
+        python $GITHUB_WORKFLOW_REF/check_for_test_updates.py
 
   # Lint:
   #   runs-on: ubuntu-latest
