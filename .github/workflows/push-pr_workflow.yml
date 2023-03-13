@@ -24,8 +24,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-
     - name: Compare test suites
       run: |
         echo ${{ github.events.repository }}
