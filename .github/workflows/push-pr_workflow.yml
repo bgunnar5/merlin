@@ -25,14 +25,13 @@ jobs:
 
     steps:
     - name: Compare test suites
-      if: ${{ github.event_name }} == "pull_request"
+      if: ${{ github.event_name }} == 'pull_request'
       run: |
-        echo ${{ github.repository }} # bgunnar5/merlin -> LLNL/merlin
-        echo ${{ github.action_repository }}
-        echo ${{ github.base_ref }}
-        echo ${{ github.ref_name }}
-        echo $GITHUB_REPOSITORY
-        python ${{ github.repositoryUrl }}/tree/.github/check_for_test_updates.py
+        echo "repository: ${{ github.repository }}" # bgunnar5/merlin -> LLNL/merlin
+        echo "action repository: ${{ github.action_repository }}"
+        echo "base ref: ${{ github.base_ref }}"
+        echo "ref name: ${{ github.ref_name }}"
+        python $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/tree/.github/check_for_test_updates.py
 
   # Lint:
   #   runs-on: ubuntu-latest
