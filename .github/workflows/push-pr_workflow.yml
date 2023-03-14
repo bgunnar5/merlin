@@ -30,15 +30,18 @@ jobs:
 # triggering one action after another finishes: https://stackoverflow.com/questions/62750603/github-actions-trigger-another-action-after-one-action-is-completed
 # Would this^ work for a step that doesn't get ran (i.e. when this step runs on push rather than PR)?
     steps:
-    - name: Checkout
+    # Goal is to use these first two steps to get paths to the test directories and pass them in as args to check_for_test_updates.py
+    - name: Checkout base repo
       uses: actions/checkout@v3
-    #   with:
-    #     path: ${{ github.base_ref }}
+      with:
+        ref: ${{ github.base_ref }}
 
-    # - name: Checkout source repo
-    #   uses: actions/checkout@v3
-    #   with:
-    #     path: ${{ github.head_ref }}
+    - name: Checkout source repo
+      uses: actions/checkout@v3
+      with:
+        repository: ${{ github.repository }}
+        ref: ${{ github.head_ref }}
+        path: ./tests
 
     - name: Echo github variables
       run: |
@@ -58,7 +61,7 @@ jobs:
     - name: Comparing test dirs
       run: |
         echo "$GITHUB_WORKSPACE/tests"
-        python3 .github/check_for_test_updates.py tests/ https://github.com/${{ github.repository }}/tree/${{ github.head_ref }}/tests/
+        python3 .github/check_for_test_updates.py tests/ ./tests
     # - name: Comparing test directories
     #   uses: jannekem/run-python-script-action@v1.6
     #   id: script
