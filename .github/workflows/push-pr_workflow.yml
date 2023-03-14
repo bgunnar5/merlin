@@ -40,11 +40,12 @@ jobs:
       id: script
       with:
         script: |
+          import os
           from filecmp import dircmp
-          print(${{ github.base_ref }})
-          print(${{ github.head_ref }})
-          comp = dircmp()
-          set_env("NEW_TESTS", bool(comp))
+          if os.path.isdir("${{ github.base_ref }}/tests/"):
+            print("${{ github.base_ref }}/tests/ is a directory")
+          # comp = dircmp()
+          # set_env("NEW_TESTS", bool(comp))
     - name: echo NEW_TESTS
       run: echo "$NEW_TESTS"
       # run: |
