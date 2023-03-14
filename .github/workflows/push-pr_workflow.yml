@@ -25,7 +25,7 @@ jobs:
 
     steps:
     - name: Compare test suites
-      if: github.event_name == "pull_request"
+      if: github.event_name == 'pull_request'
       run: |
         result=("${{github.event_name}}" == "pull_request")
         echo "result: $result"
