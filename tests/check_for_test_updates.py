@@ -40,8 +40,9 @@ from filecmp import dircmp
 
 def setup_argparse():
     parser = argparse.ArgumentParser(description="check_for_updates cli parser")
-    parser.add_argument("old_tests", type=str, help="Path to the test folder of the repo we're merging into")
-    parser.add_argument("new_tests", type=str, help="Path to the test folder of the repo we're merging")
+    parser.add_argument("changed_test_files", type=str, help="Changed test files")
+    # parser.add_argument("old_tests", type=str, help="Path to the test folder of the repo we're merging into")
+    # parser.add_argument("new_tests", type=str, help="Path to the test folder of the repo we're merging")
     return parser
 
 
@@ -50,13 +51,16 @@ def main():
     Using path's to each repo, check if the test suites have changed.
     If they have, return True. Otherwise, False.
     """
-    # # Get the repo paths
-    # parser = setup_argparse()
-    # args = parser.parse_args()
+    # Get the repo paths
+    parser = setup_argparse()
+    args = parser.parse_args()
+    print(args.changed_test_files)
+    print(type(args.changed_test_files))
 
     # comp = dircmp(args.old_tests, args.new_tests)
 
     # print(bool(comp.diff_files))
+
     print("check_for_test_updates called")
     # purposely changing this file
 
