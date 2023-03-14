@@ -58,6 +58,7 @@ def main():
 
     # print(bool(comp.diff_files))
     print("check_for_test_updates called")
+    # purposely changing this file
 
 
 if __name__ == "__main__":
