@@ -43,7 +43,7 @@ jobs:
         id: changed-test-files
         uses: tj-actions/changed-files@v35
         with:
-          files: tests/*.py
+          files: tests/**
 
       - name: List all changed test files
         if: steps.changed-test-files.outputs.any_changed == 'true'
