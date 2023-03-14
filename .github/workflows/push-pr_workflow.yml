@@ -47,7 +47,7 @@ jobs:
         id: changed-files-specific
         uses: tj-actions/changed-files@v35
         with:
-          files: docs/*.{js,html}  # Alternatively using: `docs/**` or `docs`
+          files: tests/*.py  # Alternatively using: `docs/**` or `docs`
 
       - name: Run step if any file(s) in the docs folder change
         if: steps.changed-files-specific.outputs.any_changed == 'true'
@@ -56,76 +56,76 @@ jobs:
           echo "List all the files that have changed: ${{ steps.changed-files-specific.outputs.all_changed_files }}"
       
       # Example 3
-      - name: Get changed py files excluding the docs folder
+      - name: Get changed py files excluding the merlin folder
         id: changed-files-excluded
         uses: tj-actions/changed-files@v35
         with:
           files: |
             **/*.py
-          files_ignore: docs/** # Alternatively using: `docs`
+          files_ignore: merlin/**
 
-      - name: Run step if any other js file(s) change
+      - name: Run step if any other py file(s) change
         if: steps.changed-files-excluded.outputs.any_changed == 'true'
         run: |
-          echo "One or more js files not in the doc folder has changed."
+          echo "One or more py files not in the merlin folder has changed."
           echo "List all the files that have changed: ${{ steps.changed-files-excluded.outputs.all_changed_files }}"
 
-  Test-suite-check:
-    name: Check if test suite updated
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+  # Test-suite-check:
+  #   name: Check if test suite updated
+  #   runs-on: ubuntu-latest
+  #   if: github.event_name == 'pull_request'
 
 # TODO: get the python script running (this step now only runs on PRs)
 # github context: https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
 # modifying env variable for workflow: https://github.com/orgs/community/discussions/26957
 # triggering one action after another finishes: https://stackoverflow.com/questions/62750603/github-actions-trigger-another-action-after-one-action-is-completed
 # Would this^ work for a step that doesn't get ran (i.e. when this step runs on push rather than PR)?
-    steps:
-    # Goal is to use these first two steps to get paths to the test directories and pass them in as args to check_for_test_updates.py
-    - name: Checkout base repo
-      uses: actions/checkout@v3
-    #   with:
-    #     ref: ${{ github.base_ref }}
-
-    # - name: Checkout source repo
+    # steps:
+    # # Goal is to use these first two steps to get paths to the test directories and pass them in as args to check_for_test_updates.py
+    # - name: Checkout base repo
     #   uses: actions/checkout@v3
+    # #   with:
+    # #     ref: ${{ github.base_ref }}
+
+    # # - name: Checkout source repo
+    # #   uses: actions/checkout@v3
+    # #   with:
+    # #     repository: ${{ github.repository }}
+    # #     ref: ${{ github.head_ref }}
+    # #     path: ./tests
+
+    # - name: Echo github variables
+    #   run: |
+    #     echo "event name: ${{ github.event_name }}"
+    #     echo "repository: ${{ github.repository }}" # bgunnar5/merlin -> LLNL/merlin
+    #     echo "action repository: ${{ github.action_repository }}"
+    #     echo "base ref: ${{ github.base_ref }}"
+    #     echo "head ref: ${{ github.head_ref }}"
+    #     echo "ref name: ${{ github.ref_name }}"
+    #     echo "server url: ${{ github.server_url }}"
+
+    # - name: Setup Python Version
+    #   uses: actions/setup-python@v4
     #   with:
-    #     repository: ${{ github.repository }}
-    #     ref: ${{ github.head_ref }}
-    #     path: ./tests
-
-    - name: Echo github variables
-      run: |
-        echo "event name: ${{ github.event_name }}"
-        echo "repository: ${{ github.repository }}" # bgunnar5/merlin -> LLNL/merlin
-        echo "action repository: ${{ github.action_repository }}"
-        echo "base ref: ${{ github.base_ref }}"
-        echo "head ref: ${{ github.head_ref }}"
-        echo "ref name: ${{ github.ref_name }}"
-        echo "server url: ${{ github.server_url }}"
-
-    - name: Setup Python Version
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.x'
+    #     python-version: '3.x'
   
-    - name: Comparing test dirs
-      run: |
-        echo "$GITHUB_WORKSPACE/tests"
-        python3 .github/check_for_test_updates.py tests/ ./tests
-    # - name: Comparing test directories
-    #   uses: jannekem/run-python-script-action@v1.6
-    #   id: script
-    #   with:
-    #     script: |
-    #       import os
-    #       from filecmp import dircmp
-    #       if os.path.isdir("${{ github.base_ref }}/tests/"):
-    #         print("${{ github.base_ref }}/tests/ is a directory")
-    #       # comp = dircmp()
-    #       # set_env("NEW_TESTS", bool(comp))
-    - name: echo NEW_TESTS
-      run: echo "$NEW_TESTS"
+    # - name: Comparing test dirs
+    #   run: |
+    #     echo "$GITHUB_WORKSPACE/tests"
+    #     python3 .github/check_for_test_updates.py tests/ ./tests
+    # # - name: Comparing test directories
+    # #   uses: jannekem/run-python-script-action@v1.6
+    # #   id: script
+    # #   with:
+    # #     script: |
+    # #       import os
+    # #       from filecmp import dircmp
+    # #       if os.path.isdir("${{ github.base_ref }}/tests/"):
+    # #         print("${{ github.base_ref }}/tests/ is a directory")
+    # #       # comp = dircmp()
+    # #       # set_env("NEW_TESTS", bool(comp))
+    # - name: echo NEW_TESTS
+    #   run: echo "$NEW_TESTS"
       
 
   # Lint:
