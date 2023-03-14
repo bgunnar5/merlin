@@ -35,17 +35,19 @@ jobs:
       with:
         python-version: '3.x'
       if: github.event_name == 'pull_request'
-    - name: Comparing test directories
-      uses: jannekem/run-python-script-action@v1.6
-      id: script
-      with:
-        script: |
-          import os
-          from filecmp import dircmp
-          if os.path.isdir("${{ github.base_ref }}/tests/"):
-            print("${{ github.base_ref }}/tests/ is a directory")
-          # comp = dircmp()
-          # set_env("NEW_TESTS", bool(comp))
+    - name: Comparing test dirs
+      run: python3 tests/check_for_test_updates.py dir1/ dir2/
+    # - name: Comparing test directories
+    #   uses: jannekem/run-python-script-action@v1.6
+    #   id: script
+    #   with:
+    #     script: |
+    #       import os
+    #       from filecmp import dircmp
+    #       if os.path.isdir("${{ github.base_ref }}/tests/"):
+    #         print("${{ github.base_ref }}/tests/ is a directory")
+    #       # comp = dircmp()
+    #       # set_env("NEW_TESTS", bool(comp))
     - name: echo NEW_TESTS
       run: echo "$NEW_TESTS"
       # run: |
