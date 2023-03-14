@@ -7,7 +7,6 @@
 # LLNL-CODE-797170
 # All rights reserved.
 # This file is part of Merlin, Version: 1.9.1.
-
 #
 # For details, see https://github.com/LLNL/merlin.
 #
@@ -28,3 +27,43 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 ###############################################################################
+
+"""
+This module is used to check for differences in the test suites between 2 repos.
+If there is a difference, the Python CI will run both the old tests on the branch
+that currently exists and the new tests from the new branch that you're merging.
+"""
+import argparse
+
+from filecmp import dircmp
+
+
+def setup_argparse():
+    parser = argparse.ArgumentParser(description="check_for_updates cli parser")
+    parser.add_argument("changed_test_files", type=str, help="Changed test files")
+    # parser.add_argument("old_tests", type=str, help="Path to the test folder of the repo we're merging into")
+    # parser.add_argument("new_tests", type=str, help="Path to the test folder of the repo we're merging")
+    return parser
+
+
+def main():
+    """
+    Using path's to each repo, check if the test suites have changed.
+    If they have, return True. Otherwise, False.
+    """
+    # Get the repo paths
+    parser = setup_argparse()
+    args = parser.parse_args()
+    print(args.changed_test_files)
+    print(type(args.changed_test_files))
+    changed_files = args.changed_test_files.split()
+    print(changed_files)
+    print(type(changed_files))
+
+    # comp = dircmp(args.old_tests, args.new_tests)
+
+    # print(bool(comp.diff_files))
+
+
+if __name__ == "__main__":
+    main()
