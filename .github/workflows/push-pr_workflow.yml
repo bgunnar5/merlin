@@ -23,6 +23,11 @@ jobs:
     name: Check if test suite updated
     runs-on: ubuntu-latest
 
+# TODO: get the python script running (this step now only runs on PRs)
+# github context: https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
+# modifying env variable for workflow: https://github.com/orgs/community/discussions/26957
+# triggering one action after another finishes: https://stackoverflow.com/questions/62750603/github-actions-trigger-another-action-after-one-action-is-completed
+# Would this^ work for a step that doesn't get ran (i.e. when this step runs on push rather than PR)?
     steps:
     - name: Compare test suites
       if: github.event_name == 'pull_request'
@@ -35,7 +40,7 @@ jobs:
         echo "base ref: ${{ github.base_ref }}"
         echo "head ref: ${{ github.head_ref }}"
         echo "ref name: ${{ github.ref_name }}"
-        python $GITHUB_SERVER_URL/tree/${{ github.head_ref }}/.github/check_for_test_updates.py
+        python ${{ github.server_url }}/tree/${{ github.head_ref }}/.github/check_for_test_updates.py
 
   # Lint:
   #   runs-on: ubuntu-latest
