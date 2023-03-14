@@ -30,8 +30,25 @@ jobs:
 # triggering one action after another finishes: https://stackoverflow.com/questions/62750603/github-actions-trigger-another-action-after-one-action-is-completed
 # Would this^ work for a step that doesn't get ran (i.e. when this step runs on push rather than PR)?
     steps:
-    - name: Checkout "$GITHUB_WORKSPACE"
+    - name: Checkout
       uses: actions/checkout@v3
+    #   with:
+    #     path: ${{ github.base_ref }}
+
+    # - name: Checkout source repo
+    #   uses: actions/checkout@v3
+    #   with:
+    #     path: ${{ github.head_ref }}
+
+    - name: Echo github variables
+      run: |
+        echo "event name: ${{ github.event_name }}"
+        echo "repository: ${{ github.repository }}" # bgunnar5/merlin -> LLNL/merlin
+        echo "action repository: ${{ github.action_repository }}"
+        echo "base ref: ${{ github.base_ref }}"
+        echo "head ref: ${{ github.head_ref }}"
+        echo "ref name: ${{ github.ref_name }}"
+        echo "server url: ${{ github.server_url }}"
 
     - name: Setup Python Version
       uses: actions/setup-python@v4
@@ -55,17 +72,7 @@ jobs:
     #       # set_env("NEW_TESTS", bool(comp))
     - name: echo NEW_TESTS
       run: echo "$NEW_TESTS"
-      # run: |
-      #   result=("${{github.event_name}}" == "pull_request")
-      #   echo "result: $result"
-      #   echo "event name: ${{ github.event_name }}"
-      #   echo "repository: ${{ github.repository }}" # bgunnar5/merlin -> LLNL/merlin
-      #   echo "action repository: ${{ github.action_repository }}"
-      #   echo "base ref: ${{ github.base_ref }}"
-      #   echo "head ref: ${{ github.head_ref }}"
-      #   echo "ref name: ${{ github.ref_name }}"
-      #   echo "server url: ${{ github.server_url }}"
-      #   python3 tests/check_for_test_updates.py
+      
 
   # Lint:
   #   runs-on: ubuntu-latest
