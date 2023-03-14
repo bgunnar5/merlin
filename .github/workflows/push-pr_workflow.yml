@@ -33,15 +33,15 @@ jobs:
     # Goal is to use these first two steps to get paths to the test directories and pass them in as args to check_for_test_updates.py
     - name: Checkout base repo
       uses: actions/checkout@v3
-      with:
-        ref: ${{ github.base_ref }}
+    #   with:
+    #     ref: ${{ github.base_ref }}
 
-    - name: Checkout source repo
-      uses: actions/checkout@v3
-      with:
-        repository: ${{ github.repository }}
-        ref: ${{ github.head_ref }}
-        path: ./tests
+    # - name: Checkout source repo
+    #   uses: actions/checkout@v3
+    #   with:
+    #     repository: ${{ github.repository }}
+    #     ref: ${{ github.head_ref }}
+    #     path: ./tests
 
     - name: Echo github variables
       run: |
