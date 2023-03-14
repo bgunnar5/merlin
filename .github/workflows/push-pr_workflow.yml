@@ -29,14 +29,19 @@ jobs:
 # triggering one action after another finishes: https://stackoverflow.com/questions/62750603/github-actions-trigger-another-action-after-one-action-is-completed
 # Would this^ work for a step that doesn't get ran (i.e. when this step runs on push rather than PR)?
     steps:
-    - uses: actions/checkout@v3
+      if: github.event_name == 'pull_request'
+    - name: Checkout $GITHUB_WORKSPACE
+      uses: actions/checkout@v3
+
     - name: Setup Python Version
       uses: actions/setup-python@v4
       with:
         python-version: '3.x'
-      if: github.event_name == 'pull_request'
+  
     - name: Comparing test dirs
-      run: python3 .github/check_for_test_updates.py dir1/ dir2/
+      run: |
+        echo "$GITHUB_WORKSPACE/tests"
+        python3 .github/check_for_test_updates.py dir1/ dir2/
     # - name: Comparing test directories
     #   uses: jannekem/run-python-script-action@v1.6
     #   id: script

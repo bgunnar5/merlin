@@ -50,14 +50,13 @@ def main():
     Using path's to each repo, check if the test suites have changed.
     If they have, return True. Otherwise, False.
     """
-    # # Get the repo paths
-    # parser = setup_argparse()
-    # args = parser.parse_args()
+    # Get the repo paths
+    parser = setup_argparse()
+    args = parser.parse_args()
 
-    # comp = dircmp(args.old_tests, args.new_tests)
+    comp = dircmp(args.old_tests, args.new_tests)
 
-    # print(bool(comp.diff_files))
-    print("check_for_test_updates called")
+    print(bool(comp.diff_files))
 
 
 if __name__ == "__main__":
