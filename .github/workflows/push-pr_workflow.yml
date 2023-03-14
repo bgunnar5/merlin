@@ -34,6 +34,17 @@ jobs:
         with:
           files: tests/*.py
 
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v35
+
+      - name: List all changed files
+        if: steps.changed-files.outputs.any_changed == 'true'
+        run: |
+          for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
+            echo "$file was changed"
+          done
+
       - name: List all changed test files
         if: steps.changed-test-files.outputs.any_changed == 'true'
         run: |
