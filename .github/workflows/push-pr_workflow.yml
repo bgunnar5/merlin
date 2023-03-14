@@ -30,15 +30,19 @@ jobs:
 # Would this^ work for a step that doesn't get ran (i.e. when this step runs on push rather than PR)?
     steps:
     - uses: actions/checkout@v3
-    - uses: actions/setup-python@v4
+    - name: Setup Python Version
+      uses: actions/setup-python@v4
       with:
         python-version: '3.x'
       if: github.event_name == 'pull_request'
-    - uses: jannekem/run-python-script-action@v1.6
+    - name: Comparing test directories
+      uses: jannekem/run-python-script-action@v1.6
       id: script
       with:
         script: |
           from filecmp import dircmp
+          print(${{ github.base_ref }})
+          print(${{ github.head_ref }})
           comp = dircmp()
           set_env("NEW_TESTS", bool(comp))
     - name: echo NEW_TESTS
