@@ -30,9 +30,9 @@ jobs:
 # Would this^ work for a step that doesn't get ran (i.e. when this step runs on push rather than PR)?
     steps:
     - name: Compare test suites
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.x'
+      # uses: actions/setup-python@v2
+      # with:
+      #   python-version: '3.x'
       if: github.event_name == 'pull_request'
       run: |
         result=("${{github.event_name}}" == "pull_request")
