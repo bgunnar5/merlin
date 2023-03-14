@@ -34,7 +34,7 @@ jobs:
       with:
         python-version: '3.x'
       if: github.event_name == 'pull_request'
-    - uses: jannekem/run-ptyhon-script-action@v1.6
+    - uses: jannekem/run-python-script-action@v1.6
       id: script
       with:
         script: |
