@@ -30,6 +30,9 @@ jobs:
 # Would this^ work for a step that doesn't get ran (i.e. when this step runs on push rather than PR)?
     steps:
     - name: Compare test suites
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
       if: github.event_name == 'pull_request'
       run: |
         result=("${{github.event_name}}" == "pull_request")
@@ -41,7 +44,7 @@ jobs:
         echo "head ref: ${{ github.head_ref }}"
         echo "ref name: ${{ github.ref_name }}"
         echo "server url: ${{ github.server_url }}"
-        python3 .github/check_for_test_updates.py
+        python3 tests/check_for_test_updates.py
 
   # Lint:
   #   runs-on: ubuntu-latest
