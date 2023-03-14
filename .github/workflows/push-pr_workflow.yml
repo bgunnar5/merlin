@@ -36,7 +36,7 @@ jobs:
         python-version: '3.x'
       if: github.event_name == 'pull_request'
     - name: Comparing test dirs
-      run: python3 tests/check_for_test_updates.py dir1/ dir2/
+      run: python3 .github/check_for_test_updates.py dir1/ dir2/
     # - name: Comparing test directories
     #   uses: jannekem/run-python-script-action@v1.6
     #   id: script
