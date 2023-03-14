@@ -40,7 +40,8 @@ jobs:
         echo "base ref: ${{ github.base_ref }}"
         echo "head ref: ${{ github.head_ref }}"
         echo "ref name: ${{ github.ref_name }}"
-        python ${{ github.server_url }}/tree/${{ github.head_ref }}/.github/check_for_test_updates.py
+        echo "server url: ${{ github.server_url }}"
+        python https://github.com/tree/${{ github.head_ref }}/.github/check_for_test_updates.py
 
   # Lint:
   #   runs-on: ubuntu-latest
