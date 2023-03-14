@@ -54,7 +54,7 @@ jobs:
       
       - name: Test passing changed files as input
         if: steps.changed-test-files.outputs.any_changed == 'true'
-        run: python3 tests/check_for_test_updates.py ${{ steps.changed-test-files.outputs.all_changed_files }}
+        run: python3 tests/check_for_test_updates.py "${{ steps.changed-test-files.outputs.all_changed_files }}"
 
   # Test-suite-check:
   #   name: Check if test suite updated

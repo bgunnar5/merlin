@@ -56,13 +56,13 @@ def main():
     args = parser.parse_args()
     print(args.changed_test_files)
     print(type(args.changed_test_files))
+    changed_files = args.changed_test_files.split()
+    print(changed_files)
+    print(type(changed_files))
 
     # comp = dircmp(args.old_tests, args.new_tests)
 
     # print(bool(comp.diff_files))
-
-    print("check_for_test_updates called")
-    # purposely changing this file
 
 
 if __name__ == "__main__":
