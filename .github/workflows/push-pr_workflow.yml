@@ -27,7 +27,7 @@ jobs:
     - name: Compare test suites
       if: ${{ github.event_name }} == "pull_request"
       run: |
-        result=("${{github.event_name}}"" == "pull_request")
+        result=("${{github.event_name}}" == "pull_request")
         echo "result: $result"
         echo "event name: ${{ github.event_name }}"
         echo "repository: ${{ github.repository }}" # bgunnar5/merlin -> LLNL/merlin
