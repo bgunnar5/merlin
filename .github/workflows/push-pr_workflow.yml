@@ -25,7 +25,7 @@ jobs:
 
     steps:
     - name: Compare test suites
-      if: ${{ github.event_name }} != "push"
+      if: github.event_name == "pull_request"
       run: |
         result=("${{github.event_name}}" == "pull_request")
         echo "result: $result"
@@ -35,7 +35,7 @@ jobs:
         echo "base ref: ${{ github.base_ref }}"
         echo "head ref: ${{ github.head_ref }}"
         echo "ref name: ${{ github.ref_name }}"
-        python $GITHUB_REPOSITORY/tree/${{ github.head_ref }}/.github/check_for_test_updates.py
+        python $GITHUB_SERVER_URL/tree/${{ github.head_ref }}/.github/check_for_test_updates.py
 
   # Lint:
   #   runs-on: ubuntu-latest
