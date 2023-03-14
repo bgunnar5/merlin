@@ -22,6 +22,7 @@ jobs:
   Test-suite-check:
     name: Check if test suite updated
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
 
 # TODO: get the python script running (this step now only runs on PRs)
 # github context: https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
@@ -29,7 +30,6 @@ jobs:
 # triggering one action after another finishes: https://stackoverflow.com/questions/62750603/github-actions-trigger-another-action-after-one-action-is-completed
 # Would this^ work for a step that doesn't get ran (i.e. when this step runs on push rather than PR)?
     steps:
-      if: github.event_name == 'pull_request'
     - name: Checkout $GITHUB_WORKSPACE
       uses: actions/checkout@v3
 
