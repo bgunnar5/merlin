@@ -154,21 +154,21 @@ def get_batch_type(default=None):
     :returns: (str) The batch name (available options: slurm, flux, lsf, pbs).
     """
     # Flux should be checked first due to slurm emulation scripts
-    LOG.debug(f"check for flux = {check_for_flux()}")
+    LOG.error(f"check for flux = {check_for_flux()}")
     if check_for_flux():
         return "flux"
 
     # PBS should be checked before slurm for testing
-    LOG.debug(f"check for pbs = {check_for_pbs()}")
+    LOG.error(f"check for pbs = {check_for_pbs()}")
     if check_for_pbs():
         return "pbs"
 
     # LSF should be checked before slurm for testing
-    LOG.debug(f"check for lsf = {check_for_lsf()}")
+    LOG.error(f"check for lsf = {check_for_lsf()}")
     if check_for_lsf():
         return "lsf"
 
-    LOG.debug(f"check for slurm = {check_for_slurm()}")
+    LOG.error(f"check for slurm = {check_for_slurm()}")
     if check_for_slurm():
         return "slurm"
 
@@ -301,11 +301,14 @@ def construct_worker_launch_command(batch: Optional[Dict], btype: str, nodes: in
     : param btype : (str): The type of batch (flux, local, lsf)
     : param nodes : (int): The number of nodes to use in the batch launch
     """
+    LOG.error(f"btype: {btype}")
     launch_command: str = ""
     workload_manager: str = get_batch_type()
     bank: str = get_yaml_var(batch, "bank", "")
     queue: str = get_yaml_var(batch, "queue", "")
     walltime: str = get_yaml_var(batch, "walltime", "")
+
+    LOG.error(f"workload_manager: {workload_manager}")
 
     if btype == "pbs" and workload_manager == btype:
         raise Exception("The PBS scheduler is only enabled for 'batch: flux' type")
