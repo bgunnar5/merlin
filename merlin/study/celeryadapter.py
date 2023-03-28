@@ -332,7 +332,7 @@ def start_celery_workers(spec, steps, celery_args, disable_logs, just_return_com
         worker_cmd = batch_worker_launch(spec, celery_cmd, nodes=worker_nodes, batch=worker_batch)
         worker_cmd = os.path.expandvars(worker_cmd)
 
-        LOG.debug(f"worker cmd={worker_cmd}")
+        LOG.error(f"worker cmd={worker_cmd}")
 
         if just_return_command:
             worker_list = ""
