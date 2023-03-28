@@ -224,6 +224,7 @@ def launch_workers(args):
         LOG.info(f"Launching workers from '{filepath}'")
     status = router.launch_workers(spec, args.worker_steps, args.worker_args, args.disable_logs, args.worker_echo_only)
     if args.worker_echo_only:
+        LOG.error(f"status: {status}")
         print(status)
     else:
         LOG.debug(f"celery command: {status}")
