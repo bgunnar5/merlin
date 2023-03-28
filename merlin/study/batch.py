@@ -290,6 +290,8 @@ def batch_worker_launch(
     else:
         worker_cmd = f"{launch_command} {com}"
 
+    LOG.error(f"full worker command: {worker_cmd}")
+
     return worker_cmd
 
 
@@ -312,6 +314,9 @@ def construct_worker_launch_command(batch: Optional[Dict], btype: str, nodes: in
 
     if btype == "pbs" and workload_manager == btype:
         raise Exception("The PBS scheduler is only enabled for 'batch: flux' type")
+
+    LOG.error(f"workload_manager 2: {workload_manager}")
+    LOG.error(f"btype 2: {btype}")
 
     if btype == "slurm" or workload_manager == "slurm":
         launch_command = f"srun -N {nodes} -n {nodes}"
@@ -350,5 +355,7 @@ def construct_worker_launch_command(batch: Optional[Dict], btype: str, nodes: in
         # if walltime:
         #     launch_command += f" -l walltime={walltime}"
         launch_command += " --"  # To read from stdin
+
+    LOG.error(f"launch command: {launch_command}")
 
     return launch_command
