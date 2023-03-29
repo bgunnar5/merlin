@@ -162,7 +162,6 @@ def parse_batch_block(batch: Dict) -> Dict:
         flux_path += "/"
 
     flux_exe: str = os.path.join(flux_path, "flux")
-    flux_alloc: str = get_flux_alloc(flux_exe) if btype == "flux" else ""
 
     parsed_batch = {
         "btype": btype,
@@ -177,7 +176,8 @@ def parse_batch_block(batch: Dict) -> Dict:
         "flux path": flux_path,
         "flux exe": flux_exe,
         "flux exec": get_yaml_var(batch, "flux_exec", None),
-        "flux alloc": flux_alloc,
+        # The flux alloc can't be set unless we know for sure the workload manager is flux so default to ""
+        "flux alloc": "",
         "flux opts": get_yaml_var(batch, "flux_start_opts", ""),
         "flux exec workers": get_yaml_var(batch, "flux_exec_workers", True),
     }
@@ -288,11 +288,12 @@ def construct_scheduler_legend(parsed_batch: Dict, nodes: int) -> Dict:
     :returns: A dict of scheduler related information
     """
     scheduler_legend = {
+        # The launch command for flux can't be determined until we're sure the workload manager is flux
+        # so we leave it out of this dict
         "flux": {
             "bank": f" --setattr=system.bank={parsed_batch['bank']}",
             "check cmd": ["flux", "resource", "info"],
             "expected check output": b"Nodes",
-            "launch": f"{parsed_batch['flux alloc']} -o pty -N {nodes} --exclusive --job-name=merlin",
             "queue": f" --setattr=system.queue={parsed_batch['queue']}",
             "walltime": f" -t {parsed_batch['walltime']}",
         },
@@ -344,10 +345,15 @@ def construct_worker_launch_command(parsed_batch: Dict, nodes: int) -> str:
     if parsed_batch["btype"] == "slurm" and workload_manager not in ("lsf", "flux", "pbs"):
         workload_manager = "slurm"
 
-    try:
-        launch_command = scheduler_legend[workload_manager]["launch"]
-    except KeyError as e:  # pylint: disable=C0103
-        LOG.debug(e)
+    # The launch command for flux has to be determined after we establish the workload manager
+    # for the case that flux is the btype but not the workload manager
+    if workload_manager == "flux":
+        launch_command = f"{get_flux_alloc(parsed_batch['flux exe'])} -o pty -N {nodes} --exclusive --job-name=merlin"
+    else:
+        try:
+            launch_command = scheduler_legend[workload_manager]["launch"]
+        except KeyError as e:  # pylint: disable=C0103
+            LOG.debug(e)
 
     # If lsf is the workload manager we stop here (no need to add bank, queue, walltime)
     if workload_manager != "lsf" or not launch_command:
