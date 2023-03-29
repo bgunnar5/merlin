@@ -156,15 +156,16 @@ def parse_batch_block(batch: Dict) -> Dict:
     :param `batch`: The batch block to read in
     :returns: A dict with all the info (or defaults) from the batch block
     """
+    btype = get_yaml_var(batch, "type", "local")
     flux_path: str = get_yaml_var(batch, "flux_path", "")
     if "/" in flux_path:
         flux_path += "/"
 
     flux_exe: str = os.path.join(flux_path, "flux")
-    flux_alloc: str = get_flux_alloc(flux_exe)
+    flux_alloc: str = get_flux_alloc(flux_exe) if btype == "flux" else ""
 
     parsed_batch = {
-        "btype": get_yaml_var(batch, "type", "local"),
+        "btype": btype,
         "nodes": get_yaml_var(batch, "nodes", None),
         "shell": get_yaml_var(batch, "shell", "bash"),
         "bank": get_yaml_var(batch, "bank", ""),
@@ -350,6 +351,8 @@ def construct_worker_launch_command(parsed_batch: Dict, nodes: int) -> str:
 
     # If lsf is the workload manager we stop here (no need to add bank, queue, walltime)
     if workload_manager != "lsf" or not launch_command:
+        if workload_manager == "flux":
+
         # Add bank, queue, and walltime to the launch command as necessary
         for key in ("bank", "queue", "walltime"):
             if parsed_batch[key]:
