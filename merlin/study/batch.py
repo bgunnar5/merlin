@@ -351,8 +351,6 @@ def construct_worker_launch_command(parsed_batch: Dict, nodes: int) -> str:
 
     # If lsf is the workload manager we stop here (no need to add bank, queue, walltime)
     if workload_manager != "lsf" or not launch_command:
-        if workload_manager == "flux":
-
         # Add bank, queue, and walltime to the launch command as necessary
         for key in ("bank", "queue", "walltime"):
             if parsed_batch[key]:
