@@ -1,5 +1,5 @@
 ###############################################################################
-# Copyright (c) 2022, Lawrence Livermore National Security, LLC.
+# Copyright (c) 2023, Lawrence Livermore National Security, LLC.
 # Produced at the Lawrence Livermore National Laboratory
 # Written by the Merlin dev team, listed in the CONTRIBUTORS file.
 # <merlin@llnl.gov>
@@ -27,6 +27,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 ###############################################################################
+"""This module contains example spec files with explanations of each block"""
 
 # Taken from https://lc.llnl.gov/mlsi/docs/merlin/merlin_config.html
 TEMPLATE_FILE_CONTENTS = """

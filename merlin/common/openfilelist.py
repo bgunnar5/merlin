@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 ###############################################################################
-# Copyright (c) 2022, Lawrence Livermore National Security, LLC.
+# Copyright (c) 2023, Lawrence Livermore National Security, LLC.
 # Produced at the Lawrence Livermore National Laboratory
 # Written by the Merlin dev team, listed in the CONTRIBUTORS file.
 # <merlin@llnl.gov>
@@ -56,6 +56,9 @@
     implement a seek method
 
 """
+
+# This file is not currently used so we don't care what pylint has to say
+# pylint: skip-file
 
 import copy
 

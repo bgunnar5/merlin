@@ -1,7 +1,7 @@
 """The top level main function for invoking Merlin."""
 
 ###############################################################################
-# Copyright (c) 2022, Lawrence Livermore National Security, LLC.
+# Copyright (c) 2023, Lawrence Livermore National Security, LLC.
 # Produced at the Lawrence Livermore National Laboratory
 # Written by the Merlin dev team, listed in the CONTRIBUTORS file.
 # <merlin@llnl.gov>
@@ -68,7 +68,7 @@ class HelpParser(ArgumentParser):
     print the help message when an error happens."""
 
     def error(self, message):
-        sys.stderr.write("error: %s\n" % message)
+        sys.stderr.write(f"error: {message}\n")
         self.print_help()
         sys.exit(2)
 
@@ -222,8 +222,9 @@ def launch_workers(args):
     spec, filepath = get_merlin_spec_with_override(args)
     if not args.worker_echo_only:
         LOG.info(f"Launching workers from '{filepath}'")
-    status = router.launch_workers(spec, args.worker_steps, args.worker_args, args.worker_echo_only)
+    status = router.launch_workers(spec, args.worker_steps, args.worker_args, args.disable_logs, args.worker_echo_only)
     if args.worker_echo_only:
+        LOG.error(f"status: {status}")
         print(status)
     else:
         LOG.debug(f"celery command: {status}")
@@ -280,6 +281,8 @@ def stop_workers(args):
     """
     print(banner_small)
     worker_names = []
+
+    # Load in the spec if one was provided via the CLI
     if args.spec:
         spec_path = verify_filepath(args.spec)
         spec = MerlinSpec.load_specification(spec_path)
@@ -287,6 +290,8 @@ def stop_workers(args):
         for worker_name in worker_names:
             if "$" in worker_name:
                 LOG.warning(f"Worker '{worker_name}' is unexpanded. Target provenance spec instead?")
+
+    # Send stop command to router
     router.stop_workers(args.task_server, worker_names, args.queues, args.workers)
 
 
@@ -344,6 +349,10 @@ def process_monitor(args):
 
 
 def process_server(args: Namespace):
+    """
+    Route to the correct function based on the command
+    given via the CLI
+    """
     if args.commands == "init":
         init_server()
     elif args.commands == "start":
@@ -358,7 +367,9 @@ def process_server(args: Namespace):
         config_server(args)
 
 
-def setup_argparse() -> None:
+# Pylint complains that there's too many statements here and wants us
+# to split the function up but that wouldn't make much sense so we ignore it
+def setup_argparse() -> None:  # pylint: disable=R0915
     """
     Setup argparse and any CLI options we want available via the package.
     """
@@ -755,6 +766,12 @@ def generate_worker_touching_parsers(subparsers: ArgumentParser) -> None:
         help="Specify desired Merlin variable values to override those found in the specification. Space-delimited. "
         "Example: '--vars LEARN=path/to/new_learn.py EPOCHS=3'",
     )
+    run_workers.add_argument(
+        "--disable-logs",
+        action="store_true",
+        help="Turn off the logs for the celery workers. Note: having the -l flag "
+        "in your workers' args section will overwrite this flag for that worker.",
+    )
 
     # merlin query-workers
     query: ArgumentParser = subparsers.add_parser("query-workers", help="List connected task server workers.")
@@ -787,6 +804,8 @@ def generate_worker_touching_parsers(subparsers: ArgumentParser) -> None:
     stop.add_argument(
         "--workers",
         type=str,
+        action="store",
+        nargs="+",
         default=None,
         help="regex match for specific workers to stop",
     )

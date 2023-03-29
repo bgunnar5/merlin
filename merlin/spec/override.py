@@ -1,5 +1,5 @@
 ###############################################################################
-# Copyright (c) 2022, Lawrence Livermore National Security, LLC.
+# Copyright (c) 2023, Lawrence Livermore National Security, LLC.
 # Produced at the Lawrence Livermore National Laboratory
 # Written by the Merlin dev team, listed in the CONTRIBUTORS file.
 # <merlin@llnl.gov>
@@ -27,6 +27,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 ###############################################################################
+"""This module handles overriding variables in a spec file via the CLI"""
 
 import logging
 from copy import deepcopy
@@ -49,6 +50,7 @@ def error_override_vars(override_vars, spec_filepath):
 
 
 def replace_override_vars(env, override_vars):
+    """Replace override variables in the environment block"""
     if override_vars is None:
         return env
     result = deepcopy(env)
