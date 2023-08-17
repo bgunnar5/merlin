@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Added
+- Added *.conf to the recursive-include of the merlin server folder so pip will install it
 
 ### Changed
 - Bump certifi from 2022.12.7 to 2023.7.22 in /docs
