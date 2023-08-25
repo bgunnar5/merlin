@@ -34,18 +34,51 @@ Merlin script adapter module
 
 import logging
 import os
+import subprocess
 from typing import Dict, List, Set
 
 from maestrowf.interfaces.script import SubmissionRecord
 from maestrowf.interfaces.script.localscriptadapter import LocalScriptAdapter
 from maestrowf.interfaces.script.slurmscriptadapter import SlurmScriptAdapter
-from maestrowf.utils import start_process
+# from maestrowf.utils import start_process
 
 from merlin.common.abstracts.enums import ReturnCode
 from merlin.utils import convert_timestring
 
 
 LOG = logging.getLogger(__name__)
+
+def start_process(cmd, cwd=None, env=None, shell=True, **kwargs):
+    """
+    Start a new process using a specified command.
+
+    :param cmd: A string or a list representing the command to be run.
+    :param cwd: Current working path that the process will be started in.
+    :param env: A dictionary containing the environment the process will use.
+    :param shell: Boolean that determines if the process will run a shell.
+    """
+    if isinstance(cmd, list):
+        shell = False
+
+    # Define kwargs for the upcoming Popen call.
+    kwargs = {
+        "shell":                shell,
+        # "universal_newlines":   True,
+        "stdout":               subprocess.PIPE,
+        "stderr":               subprocess.PIPE,
+    }
+
+    # Individually check if cwd and env are set -- this prevents us from
+    # adding parameters to the command that are only set to defaults. It
+    # also insulates us from potential default value changes in the future.
+    if cwd is not None:
+        kwargs["cwd"] = cwd
+
+    if env is not None:
+        kwargs["env"] = env
+
+    return subprocess.Popen(cmd, **kwargs)
+
 
 
 class MerlinLSFScriptAdapter(SlurmScriptAdapter):
@@ -409,6 +442,31 @@ class MerlinScriptAdapter(LocalScriptAdapter):
 
         return submission_record
 
+    def _decode_process_output(self, process):
+        """
+        Take in a subprocess and grab it's stdout and stderr. Then decode it using either utf-8 or latin-1.
+        NOTE: this is required for the ICECap team as something in their ray tuning package is outputting an
+        invalid utf-8 character. When this is resolved, we can go back to using Maestro's start_process method.
+
+        :param `process`: A Popen object that ran a subprocess.
+        :returns: A tuple of decoded stdout and stderr
+        """
+        print(f"inside decode process output")
+        stdout, stderr = process.communicate()
+        try:
+            stdout = stdout.decode()
+        except UnicodeError:
+            print("inside stdout unicode errror")
+            stdout = stdout.decode("latin-1")
+
+        try:
+            stderr = stderr.decode()
+        except UnicodeError:
+            print("inside stderr unicode error")
+            stderr = stderr.decode("latin-1")
+
+        return stdout, stderr
+
     # TODO is there currently ever a scenario where join output is True? We should look into this
     # Pylint is complaining there's too many local variables and args but it makes this function cleaner so ignore
     def _execute_subprocess(self, output_name, script_path, cwd, env=None, join_output=False):  # pylint: disable=R0913,R0914
@@ -431,7 +489,8 @@ class MerlinScriptAdapter(LocalScriptAdapter):
         new_output_name = os.path.splitext(script_bn)[0]
         LOG.debug(f"script_path={script_path}, output_name={output_name}, new_output_name={new_output_name}")
         process = start_process(script_path, shell=False, cwd=cwd, env=env)
-        output, err = process.communicate()
+        output, err = self._decode_process_output(process)
+        # output, err = process.communicate()
         retcode = process.wait()
 
         # This allows us to save on iNodes by not writing the output,
