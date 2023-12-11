@@ -98,7 +98,6 @@ def test_config_server_add_user_remove_user_success(
     the server status being set to RUNNING. For each scenario we should expect:
     - RUNNING -> RedisUsers.write and RedisUsers.apply_to_redis are both called twice
     - NOT_RUNNING -> RedisUsers.write is called twice and RedisUsers.apply_to_redis is not called at all
-
     :param mocker: A built-in fixture from the pytest-mock library to create a Mock object
     :param caplog: A built-in fixture from the pytest library to capture logs
     :param server_testing_dir: The path to the the temp output directory for server tests
@@ -329,7 +328,6 @@ def test_server_started_no_redis_start(mocker: "Fixture", caplog: "Fixture"):  #
     """
     mock_process = mocker.Mock()
     mock_process.stdout = mocker.Mock()
-
     expected_redis_out_msg = "Reached end of redis output without seeing 'Ready to accept connections'"
     mocker.patch("merlin.server.server_commands.parse_redis_output", return_value=(False, expected_redis_out_msg))
 

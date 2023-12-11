@@ -215,7 +215,6 @@ class CeleryWorkersManager:
         Add a process ID for a `merlin run-workers` process to the
         set that tracks all `merlin run-workers` processes that are
         currently running.
-
         Warning:
             The process that's added here must utilize the
             `start_new_session=True` setting of subprocess.Popen. This

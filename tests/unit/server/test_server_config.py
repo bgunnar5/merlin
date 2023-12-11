@@ -26,9 +26,15 @@ from merlin.server.server_config import (
     pull_process_file,
     pull_server_config,
     pull_server_image,
+    write_container_command_files,
 )
 from merlin.server.server_util import CONTAINER_TYPES, MERLIN_SERVER_SUBDIR, ServerConfig
 
+
+try:
+    from importlib import resources
+except ImportError:
+    import importlib_resources as resources
 
 try:
     from importlib import resources

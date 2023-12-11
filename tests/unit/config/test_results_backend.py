@@ -40,7 +40,6 @@ def test_get_backend_password_pass_file_in_merlin():
     if not os.path.exists(path_to_merlin_dir):
         remove_merlin_dir_after_test = True
         os.mkdir(path_to_merlin_dir)
-
     # Create the test password file
     pass_filename = "test.pass"
     full_pass_filepath = f"{path_to_merlin_dir}/{pass_filename}"

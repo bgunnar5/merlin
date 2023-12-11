@@ -152,6 +152,32 @@ def path_to_test_specs() -> FixtureStr:
     return os.path.join(path_to_test_dir, "integration", "test_specs")
 
 
+SERVER_PASS = "merlin-test-server"
+CERT_FILES = {
+    "ssl_cert": "test-rabbit-client-cert.pem",
+    "ssl_ca": "test-mysql-ca-cert.pem",
+    "ssl_key": "test-rabbit-client-key.pem",
+}
+
+
+#######################################
+#### Helper Functions for Fixtures ####
+#######################################
+
+
+def create_encryption_file(key_filepath: str, encryption_key: bytes, app_yaml_filepath: str = None):
+    """
+    Check if an encryption file already exists (it will if the redis server has been started)
+    and if it hasn't then create one and write the encryption key to the file. If an app.yaml
+    filepath has been passed to this function then we'll need to update it so that the encryption
+    key points to the `key_filepath`.
+
+    :param key_filepath: The path to the file that will store our encryption key
+    :param encryption_key: An encryption key to be used for testing
+    :param app_yaml_filepath: A path to the app.yaml file that needs to be updated
+    """
+
+
 @pytest.fixture(scope="session")
 def path_to_merlin_codebase() -> FixtureStr:
     """
@@ -192,7 +218,6 @@ def create_testing_dir() -> FixtureCallable:
         if not os.path.exists(testing_dir):
             os.makedirs(testing_dir)  # Use makedirs to create intermediate directories if needed
         return testing_dir
-
     return _create_testing_dir
 
 
@@ -372,7 +397,6 @@ def _config(merlin_server_dir: FixtureStr, test_encryption_key: FixtureBytes):
     Args:
         merlin_server_dir: The directory to the merlin test server configuration
         test_encryption_key: An encryption key to be used for testing
-
     Yields:
         This function yields control back to the test function, allowing tests to run
             with the modified CONFIG settings.
@@ -433,12 +457,13 @@ def config_function(merlin_server_dir: FixtureStr, test_encryption_key: FixtureB
     Args:
         merlin_server_dir: The directory to the merlin test server configuration
         test_encryption_key: An encryption key to be used for testing
-
     Yields:
         This function yields control back to the test function, allowing tests to run
             with the modified CONFIG settings.
     """
-    yield from _config(merlin_server_dir, test_encryption_key)
+    with open(f"{merlin_server_dir}/app.yaml", "r") as app_yaml_file:
+        app_yaml = yaml.load(app_yaml_file, yaml.Loader)
+        return app_yaml
 
 
 @pytest.fixture(scope="class")
@@ -601,6 +626,30 @@ def mysql_results_backend_config(
     CONFIG.results_backend.certfile = CERT_FILES["ssl_cert"]
     CONFIG.results_backend.ca_certs = CERT_FILES["ssl_ca"]
 
+    # Create an encryption key file (if it doesn't already exist)
+    key_file = f"{merlin_server_dir}/encrypt_data_key"
+    create_encryption_file(key_file, test_encryption_key)
+
+    # Set the broker configuration for testing
+    CONFIG.broker.password = "password path not yet set"  # This will be updated in `redis_config` or `rabbit_config`
+    CONFIG.broker.port = "port not yet set"  # This will be updated in `redis_config` or `rabbit_config`
+    CONFIG.broker.name = "name not yet set"  # This will be updated in `redis_config` or `rabbit_config`
+    CONFIG.broker.server = "127.0.0.1"
+    CONFIG.broker.username = "default"
+    CONFIG.broker.vhost = "host4testing"
+    CONFIG.broker.cert_reqs = "none"
+
+    # Set the results_backend configuration for testing
+    CONFIG.results_backend.password = f"{merlin_server_dir}/redis.pass"
+    CONFIG.results_backend.port = 6379
+    CONFIG.results_backend.server = "127.0.0.1"
+    CONFIG.results_backend.username = "default"
+    CONFIG.results_backend.cert_reqs = "none"
+    CONFIG.results_backend.encryption_key = key_file
+    CONFIG.results_backend.db_num = 0
+    CONFIG.results_backend.name = "redis"
+
+    # Go run the tests
     yield
 
 

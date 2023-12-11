@@ -8,7 +8,6 @@ import subprocess
 from tests.fixture_data_classes import FeatureDemoSetup
 from tests.integration.conditions import ProvenanceYAMLFileHasRegex, StepFinishedFilesCount
 
-
 class TestFeatureDemo:
     """
     Tests for the feature_demo workflow.

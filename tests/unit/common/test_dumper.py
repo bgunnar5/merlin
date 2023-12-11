@@ -103,7 +103,6 @@ def test_dump_handler_csv_append(temp_output_dir: str):
 
     # Run the first call to create the csv file
     dump_handler(dump_file, CSV_INFO_TO_DUMP)
-
     # Run the second call to append to the csv file
     dump_handler(dump_file, CSV_INFO_TO_DUMP)
 

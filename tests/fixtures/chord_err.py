@@ -24,7 +24,6 @@ def chord_err_testing_dir(create_testing_dir: FixtureCallable, temp_output_dir: 
     Args:
         create_testing_dir: A fixture which returns a function that creates the testing directory.
         temp_output_dir: The path to the temporary ouptut directory we'll be using for this test run.
-
     Returns:
         The path to the temporary testing directory for chord_err workflow tests.
     """

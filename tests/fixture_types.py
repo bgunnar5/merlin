@@ -26,7 +26,6 @@ from celery import Celery
 from celery.canvas import Signature
 from redis import Redis
 
-
 # TODO convert unit test type hinting to use these
 # - likely will do this when I work on API docs for test library
 

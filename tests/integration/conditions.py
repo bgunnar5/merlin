@@ -309,7 +309,6 @@ class StepFinishedFilesCount(StudyOutputAware):
     def glob_string(self) -> str:
         """
         Glob pattern to find `MERLIN_FINISHED` files in the specified step's output directory.
-
         Returns:
             A glob pattern to find `MERLIN_FINISHED` files.
         """
@@ -331,7 +330,6 @@ class StepFinishedFilesCount(StudyOutputAware):
     def passes(self) -> bool:
         """
         Check if the count of `MERLIN_FINISHED` files matches the expected count.
-
         Returns:
             True if the expected count matches the actual count. False otherwise.
         """

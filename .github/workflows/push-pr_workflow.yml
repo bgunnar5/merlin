@@ -104,15 +104,14 @@ jobs:
     - name: Check cache
       uses: actions/cache@v4
       with:
-        path: ${{ env.pythonLocation }}
-        key: ${{ env.pythonLocation }}-${{ hashFiles('requirements/release.txt') }}-${{ hashFiles('requirements/dev.txt') }}
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-${{ matrix.python-version }}-pip-${{ hashFiles('requirements/release.txt') }}-${{ hashFiles('requirements/dev.txt') }}
 
     - name: Install dependencies
       run: |
         python3 -m pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         pip3 install -r requirements/dev.txt
-
     - name: Install singularity
       run: |
         sudo apt-get update && sudo apt-get install -y \

@@ -28,7 +28,6 @@ class TestPurgeCommand:
         1. Copying the app.yaml file created by the `redis_server` fixture to the cwd so that
            Merlin can connect to the test server.
         2. Obtaining the path to the feature_demo spec that we'll use for these tests.
-
         Args:
             path_to_merlin_codebase:
                 A fixture to provide the path to the directory containing Merlin's core
@@ -78,7 +77,6 @@ class TestPurgeCommand:
     ) -> Dict[str, Union[str, int]]:
         """
         Helper method to run the purge command.
-
         Args:
             spec_file: The path to the spec file from which queues will be purged.
             input_value: Any input we need to send to the subprocess.

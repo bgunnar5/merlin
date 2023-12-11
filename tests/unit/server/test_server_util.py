@@ -388,7 +388,6 @@ class TestRedisUsers:
                     assert val == "on"
                 else:
                     assert val == test_dict[key]
-
         def test_set_password(self):
             """Test the `set_password` method of the User class."""
             user = RedisUsers.User()

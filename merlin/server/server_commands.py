@@ -202,6 +202,8 @@ def check_for_not_running_server() -> bool:
 
     return True
 
+    return True
+
 
 def start_container(server_config: ServerConfig) -> subprocess.Popen:
     """
