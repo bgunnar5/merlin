@@ -42,6 +42,7 @@ nav:
     - Flux Examples: "examples/flux.md"
     - Slurm Examples: "examples/slurm.md"
     - LSF Examples: "examples/lsf.md"
+    - Design Optimization Example: "examples/optimization.md"
   - FAQ: "faq.md"
   - Reference Guide:
     - Merlin Reference: "api_reference/index.md"
