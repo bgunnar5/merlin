@@ -42,7 +42,7 @@ from typing import Dict, List, Type
 from celery import Celery
 
 
-class CeleryTestWorkersManager:
+class CeleryWorkersManager:
     """
     A class to handle the setup and teardown of celery workers.
     This should be treated as a context and used with python's

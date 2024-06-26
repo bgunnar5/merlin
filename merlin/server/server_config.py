@@ -92,8 +92,8 @@ def generate_password(length, pass_command: str = None) -> str:
     :return:: string value with given length
     """
     if pass_command:
-        process = subprocess.run(pass_command.split(), shell=True, stdout=subprocess.PIPE)
-        return process.stdout
+        process = subprocess.run(pass_command, shell=True, capture_output=True, text=True)
+        return process.stdout.strip()
 
     characters = list(string.ascii_letters + string.digits + "!@#$%^&*()")
 
@@ -119,7 +119,7 @@ def parse_redis_output(redis_stdout: BufferedReader) -> Tuple[bool, str]:
     server_init = False
     redis_config = {}
     line = redis_stdout.readline()
-    while line != "" or line is not None:
+    while line != b"" and line is not None:
         if not server_init:
             values = [ln for ln in line.split() if b"=" in ln]
             for val in values:
