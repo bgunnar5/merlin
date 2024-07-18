@@ -41,6 +41,9 @@ import time
 from typing import Dict, List, Tuple
 
 from merlin.exceptions import NoWorkersException
+from merlin.study.vineadapter import (
+    run_taskvine
+)
 from merlin.study.celeryadapter import (
     build_set_of_queues,
     check_celery_workers_processing,
@@ -79,8 +82,10 @@ def run_task_server(study, run_mode=None):
     """
     if study.expanded_spec.merlin["resources"]["task_server"] == "celery":
         run_celery(study, run_mode)
+    elif study.expanded_spec.merlin["resources"]["task_server"] == "taskvine":
+        run_taskvine(study, run_mode)
     else:
-        LOG.error("Celery is not specified as the task server!")
+        LOG.error("Celery or TaskVine is not specified as the task server!")
 
 
 def launch_workers(spec, steps, worker_args="", disable_logs=False, just_return_command=False):
@@ -96,11 +101,16 @@ def launch_workers(spec, steps, worker_args="", disable_logs=False, just_return_
         # Start workers
         cproc = start_celery_workers(spec, steps, worker_args, disable_logs, just_return_command)
         return cproc
+    # TODO-vine here we have to pass in the name of the TaskVine manager that the worker serves
+    elif sepc.merlin["resources"]["task)sercer"] == "TaskVine":
+        cproc = start_celery_workers(spec, steps, worker_args, disable_logs, just_return_command)
     else:
-        LOG.error("Celery is not specified as the task server!")
+        LOG.error("Celery or TaskVine is not specified as the task server!")
         return "No workers started"
 
 
+
+#TODO-vine here, we would send an appropriate message to TaskVine, failitated by the manager to remove all tasks. 
 def purge_tasks(task_server, spec, force, steps):
     """
     Purges all tasks.
@@ -137,6 +147,7 @@ def dump_queue_info(task_server: str, query_return: List[Tuple[str, int, int]], 
         LOG.error("Celery is not specified as the task server!")
 
 
+# TODO-vine Here, vine-status give some info on managers. We can pase those results maybe.
 def query_queues(
     task_server: str,
     spec: "MerlinSpec",  # noqa: F821
