@@ -210,6 +210,15 @@
         "properties": {
           "task_server": {"type": "string", "minLength": 1},
           "overlap": {"type": "boolean"},
+          "mangers": {
+            "type": "object",
+            "patternProperties": {
+              "^.+": {
+                "type": "object"
+              }
+            
+            }
+	  },
           "workers": {
             "type": "object",
             "patternProperties": {
@@ -222,6 +231,32 @@
                     "anyOf": [
                       {"type": "null"},
                       {"type": "integer", "minimum": 1},
+                      {"type": "string", "pattern": "^\\$\\(\\w+\\)$"}
+                    ]
+                  },
+                  "memory": {
+                    "anyOf": [
+                      {"type": "null"},
+                      {"type": "integer", "minimum": 1},
+                      {"type": "string", "pattern": "^\\$\\(\\w+\\)$"}
+                    ]
+                  },
+                  "disk": {
+                    "anyOf": [
+                      {"type": "null"},
+                      {"type": "integer", "minimum": 1},
+                      {"type": "string", "pattern": "^\\$\\(\\w+\\)$"}
+                    ]
+                  },
+                  "cores": {
+                    "anyOf": [
+                      {"type": "null"},
+                      {"type": "integer", "minimum": 1},
+                      {"type": "string", "pattern": "^\\$\\(\\w+\\)$"}
+                    ]
+                  },
+                  "manager": {
+                    "anyOf": [
                       {"type": "string", "pattern": "^\\$\\(\\w+\\)$"}
                     ]
                   },
