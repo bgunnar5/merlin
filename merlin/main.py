@@ -340,6 +340,22 @@ def query_workers(args):
     router.query_workers(args.task_server, worker_names, args.queues, args.workers)
 
 
+def query_study(args):
+    """
+    CLI command for querying information about studies.
+    NOTE would be cool if this showed metadata about the study too
+    NOTE need to add in metadata that Maestro saves so maybe we can pull something from that?
+    NOTE would this be better if we pass in a currently running study (output workspace) rather than a spec file?
+
+    :param args: parsed CLI arguments
+    """
+    print(banner_small)
+
+    spec_path = verify_filepath(args.specification)
+    spec = MerlinSpec.load_specification(spec_path)
+    router.query_study(spec)
+
+
 def stop_workers(args):
     """
     CLI command for stopping all workers.
@@ -1072,6 +1088,14 @@ def generate_diagnostic_parsers(subparsers: ArgumentParser) -> None:
         help="Ignore any prompts provided. This will default to the latest study \
             if you provide a spec file rather than a study workspace.",
     )
+
+    # merlin query-study
+    query_merlin_study: ArgumentParser = subparsers.add_parser(
+        "query-study",
+        help="List information about the study.",
+    )
+    query_merlin_study.set_defaults(func=query_study)
+    query_merlin_study.add_argument("specification", type=str, help="Path to a Merlin YAML spec file")
 
     # merlin queue-info
     queue_info: ArgumentParser = subparsers.add_parser(

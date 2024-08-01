@@ -46,13 +46,12 @@ from tabulate import tabulate
 
 from merlin.common.dumper import dump_handler
 from merlin.config import Config
+from merlin.spec.specification import MerlinSpec
 from merlin.study.batch import batch_check_parallel, batch_worker_launch
 from merlin.utils import apply_list_of_regex, check_machines, get_procs, get_yaml_var, is_running
 
 
 LOG = logging.getLogger(__name__)
-
-# TODO figure out a better way to handle the import of celery app and CONFIG
 
 
 def run_taskvine(study, run_mode=None):
@@ -78,8 +77,48 @@ def run_taskvine(study, run_mode=None):
     # Send the tasks to the server
     queue_merlin_study(study, adapter_config)
 
+def start_taskvine_workers(
+    spec: MerlinSpec,
+    steps: List[str],
+    worker_args: str,
+    disable_logs: bool,
+    just_return_command: bool
+):
+    """
+    Start the TaskVine workers on the allocation.
 
-# get r
+    :param spec: A MerlinSpec object representing our study
+    :param steps: A list of steps to start workers for
+    :param worker_args: A string of arguments to provide to the workers
+    :param disable_logs: A boolean flag to turn off the logs for the workers
+    :param just_return_command: When True, workers/managers aren't started and just the launch
+                                commands for them are returned
+    """
+    # TODO Start up the workers
+    print(spec.merlin["resources"]["workers"])
+
+
+def purge_taskvine_tasks(spec: MerlinSpec, force: bool):
+    """
+    Purge tasks for the specified spec file.
+
+    :param spec: A MerlinSpec object representing our study
+    :param force: If True, purge without asking for confirmation
+    """
+    # TODO implement purge functionality
+    print(spec.merlin["resources"]["managers"])
+
+
+def query_taskvine_study(spec: MerlinSpec):
+    """
+    Query the managers with vine-status.
+
+    :param spec: A MerlinSpec object representing our study
+    """
+    # TODO implement query functionality
+    print(spec.merlin["resources"]["managers"])
+
+
 def get_running_managers(celery_app_name: str, test_mode: bool = False) -> List[str]:
     """
     Check for running celery workers by looking at the currently running processes.

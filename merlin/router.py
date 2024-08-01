@@ -42,7 +42,10 @@ from typing import Dict, List, Tuple
 
 from merlin.exceptions import NoWorkersException
 from merlin.study.vineadapter import (
-    run_taskvine
+    purge_taskvine_tasks,
+    query_taskvine_study,
+    run_taskvine,
+    start_taskvine_workers
 )
 from merlin.study.celeryadapter import (
     build_set_of_queues,
@@ -97,18 +100,17 @@ def launch_workers(spec, steps, worker_args="", disable_logs=False, just_return_
     :param `worker_args`: Optional arguments for the workers
     :param `just_return_command`: Don't execute, just return the command
     """
-    if spec.merlin["resources"]["task_server"] == "celery":  # pylint: disable=R1705
+    task_server = spec.merlin["resources"]["task_server"].lower()
+    if task_server == "celery":  # pylint: disable=R1705
         # Start workers
         cproc = start_celery_workers(spec, steps, worker_args, disable_logs, just_return_command)
         return cproc
-    # TODO-vine here we have to pass in the name of the TaskVine manager that the worker serves
-    elif sepc.merlin["resources"]["task)sercer"] == "TaskVine":
-        cproc = start_celery_workers(spec, steps, worker_args, disable_logs, just_return_command)
+    elif task_server == "taskvine":
+        tproc = start_taskvine_workers(spec, steps, worker_args, disable_logs, just_return_command)
+        return tproc
     else:
         LOG.error("Celery or TaskVine is not specified as the task server!")
         return "No workers started"
-
-
 
 #TODO-vine here, we would send an appropriate message to TaskVine, failitated by the manager to remove all tasks. 
 def purge_tasks(task_server, spec, force, steps):
@@ -127,6 +129,10 @@ def purge_tasks(task_server, spec, force, steps):
         queues = spec.make_queue_string(steps)
         # Purge tasks
         return purge_celery_tasks(queues, force)
+    elif task_server == "taskvine":
+        # TODO do we want to allow users to kill tasks for specific managers?
+        # - yes we do; TODO add setting for this
+        return purge_taskvine_tasks(spec, force)
     else:
         LOG.error("Celery is not specified as the task server!")
         return -1
@@ -145,6 +151,26 @@ def dump_queue_info(task_server: str, query_return: List[Tuple[str, int, int]], 
         dump_celery_queue_info(query_return, dump_file)
     else:
         LOG.error("Celery is not specified as the task server!")
+
+
+def query_study(spec: "MerlinSpec"):  # noqa: F821
+    """
+    Query information from the study.
+    For Celery this will provide information on the queues and the workers.
+    For TaskVine this will provide information on the workers/managers.
+
+    :param spec: A MerlinSpec object representing our study
+    """
+    task_server = spec.merlin["resources"]["task_server"].lower()
+    if task_server == "celery":
+        # TODO implement this
+        # - combination of query-workers and queue-info commands?
+        pass
+    elif task_server == "taskvine":
+        query_taskvine_study(spec)
+    else:
+        LOG.error(f"The task server '{task_server}' is not supported. Valid task servers are 'Celery' or 'TaskVine'.")
+
 
 
 # TODO-vine Here, vine-status give some info on managers. We can pase those results maybe.
