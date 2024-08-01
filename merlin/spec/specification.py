@@ -278,7 +278,7 @@ class MerlinSpec(YAMLSpecification):  # pylint: disable=R0902
             names.append(step["name"])
         return names
 
-    def _verify_workers(self):
+    def _verify_celery_workers(self):
         """
         Helper method to verify the workers section located within the Merlin block
         of our spec file.
@@ -310,8 +310,9 @@ class MerlinSpec(YAMLSpecification):  # pylint: disable=R0902
         """
         # Validate merlin block against the json schema
         YAMLSpecification.validate_schema("merlin", self.merlin, schema)
-        # Verify the workers section within merlin block
-        self._verify_workers()
+        if self.merlin["resources"]["task_server"] == "celery":
+            # Verify the workers section within merlin block
+            self._verify_celery_workers()
 
     def verify_batch_block(self, schema):
         """
@@ -351,6 +352,49 @@ class MerlinSpec(YAMLSpecification):  # pylint: disable=R0902
             user_block = {}
         return user_block
 
+    def fill_celery_defaults(self):
+        """Fill default values for Celery workers."""
+        if self.merlin["resources"]["workers"] is None:
+            self.merlin["resources"]["workers"] = {"default_worker": defaults.CELERY_WORKER}
+        else:
+            # Gather a list of step names defined in the study
+            all_workflow_steps = self.get_study_step_names()
+            # Create a variable to track the steps assigned to workers
+            worker_steps = []
+
+            # Loop through each worker and fill in the defaults
+            for _, worker_settings in self.merlin["resources"]["workers"].items():
+                MerlinSpec.fill_missing_defaults(worker_settings, defaults.CELERY_WORKER)
+                worker_steps.extend(worker_settings["steps"])
+
+            if "all" in worker_steps:
+                steps_that_need_workers = []
+            else:
+                # Figure out which steps still need workers
+                steps_that_need_workers = list(set(all_workflow_steps) - set(worker_steps))
+
+            # If there are still steps remaining that haven't been assigned a worker yet,
+            # assign the remaining steps to the default worker. If all the steps still need workers
+            # (i.e. no workers were assigned) then default workers' steps should be "all" so we skip this
+            if steps_that_need_workers and (steps_that_need_workers != all_workflow_steps):
+                self.merlin["resources"]["workers"]["default_worker"] = defaults.CELERY_WORKER
+                self.merlin["resources"]["workers"]["default_worker"]["steps"] = steps_that_need_workers
+
+    def fill_taskvine_defaults(self):
+        """Fill default values for TaskVine workers and managers."""
+        if self.merlin["resources"]["managers"] is None:
+            self.merlin["resources"]["managers"] = defaults.TASKVINE_MANAGER
+
+        if self.merlin["resources"]["workers"] is None:
+            self.merlin["resources"]["workers"] = {"default_worker": defaults.TASKVINE_WORKER}
+
+        for _, worker_settings in self.merlin["resources"]["workers"].items():
+            MerlinSpec.fill_missing_defaults(worker_settings, defaults.TASKVINE_WORKER)
+
+            # Check that the manager that the user wants to use for this worker is actually defined
+            if worker_settings["manager"] not in self.merlin["resources"]["managers"]:
+                raise ValueError(f"The manager '{worker_settings['manager']}' is not defined.")
+
     def process_spec_defaults(self):
         """Fills in the default values if they aren't there already"""
         for name, section in self.sections.items():
@@ -384,31 +428,10 @@ class MerlinSpec(YAMLSpecification):  # pylint: disable=R0902
 
         # fill in missing merlin section defaults
         MerlinSpec.fill_missing_defaults(self.merlin, defaults.MERLIN["merlin"])
-        if self.merlin["resources"]["workers"] is None:
-            self.merlin["resources"]["workers"] = {"default_worker": defaults.WORKER}
-        else:
-            # Gather a list of step names defined in the study
-            all_workflow_steps = self.get_study_step_names()
-            # Create a variable to track the steps assigned to workers
-            worker_steps = []
-
-            # Loop through each worker and fill in the defaults
-            for _, worker_settings in self.merlin["resources"]["workers"].items():
-                MerlinSpec.fill_missing_defaults(worker_settings, defaults.WORKER)
-                worker_steps.extend(worker_settings["steps"])
-
-            if "all" in worker_steps:
-                steps_that_need_workers = []
-            else:
-                # Figure out which steps still need workers
-                steps_that_need_workers = list(set(all_workflow_steps) - set(worker_steps))
-
-            # If there are still steps remaining that haven't been assigned a worker yet,
-            # assign the remaining steps to the default worker. If all the steps still need workers
-            # (i.e. no workers were assigned) then default workers' steps should be "all" so we skip this
-            if steps_that_need_workers and (steps_that_need_workers != all_workflow_steps):
-                self.merlin["resources"]["workers"]["default_worker"] = defaults.WORKER
-                self.merlin["resources"]["workers"]["default_worker"]["steps"] = steps_that_need_workers
+        if self.merlin["resources"]["task_server"] == "celery":
+            self.fill_celery_defaults()
+        elif self.merlin["resources"]["task_server"] == "taskvine":
+            self.fill_taskvine_defaults()
         if self.merlin["samples"] is not None:
             MerlinSpec.fill_missing_defaults(self.merlin["samples"], defaults.SAMPLES)
 
@@ -462,8 +485,9 @@ class MerlinSpec(YAMLSpecification):  # pylint: disable=R0902
         # check merlin
         MerlinSpec.check_section("merlin", self.merlin, all_keys.MERLIN)
         MerlinSpec.check_section("merlin.resources", self.merlin["resources"], all_keys.MERLIN_RESOURCES)
+        worker_valid_keys = all_keys.CELERY_WORKER if self.merlin["resources"]["task_server"] == "celery" else all_keys.TASKVINE_WORKER
         for worker, contents in self.merlin["resources"]["workers"].items():
-            MerlinSpec.check_section("merlin.resources.workers " + worker, contents, all_keys.WORKER)
+            MerlinSpec.check_section("merlin.resources.workers " + worker, contents, worker_valid_keys)
         if self.merlin["samples"]:
             MerlinSpec.check_section("merlin.samples", self.merlin["samples"], all_keys.SAMPLES)
 
