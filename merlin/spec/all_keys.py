@@ -76,10 +76,12 @@ STUDY_STEP_RUN = {
 
 PARAMETER = {"values", "label"}
 
-MERLIN_RESOURCES = {"task_server", "overlap", "workers"}
+MERLIN_RESOURCES = {"task_server", "overlap", "workers", "managers"}
 
 MERLIN = {"resources", "samples"}
 
-WORKER = {"steps", "nodes", "batch", "args", "machines"}
+CELERY_WORKER = {"steps", "nodes", "batch", "args", "machines"}
+
+TASKVINE_WORKER = {"args", "cores", "disk", "manager", "memory", "nodes"}
 
 SAMPLES = {"generate", "level_max_dirs", "file", "column_labels"}

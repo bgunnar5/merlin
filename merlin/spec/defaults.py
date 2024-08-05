@@ -46,7 +46,11 @@ MERLIN = {
     }
 }
 
-WORKER = {"steps": ["all"], "nodes": None, "batch": None}
+CELERY_WORKER = {"steps": ["all"], "nodes": None, "batch": None}
+
+TASKVINE_MANAGER = {"default_manager": None}
+
+TASKVINE_WORKER = {"manager": "default_manager", "nodes": 1, "cores": None, "memory": None, "disk": None}
 
 SAMPLES = {
     "generate": {"cmd": "echo 'Insert sample-generating command here'"},
