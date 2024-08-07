@@ -1,0 +1,72 @@
+description:
+    name: hello
+    description: a very simple merlin workflow
+
+env:
+  variables:
+    N_SAMPLES: 3
+
+
+global.parameters:
+    GREET:
+        values : ["hello","hola", "Bonjour"]
+        label  : GREET.%%
+
+study:
+    - name: step_0
+      description: step 0
+      run:
+          cmd: echo step0
+    - name: step_1
+      description: step 0
+      run:
+          cmd: echo step0
+    - name: step_2
+      description: step 0
+      run:
+          cmd: echo step0
+
+    - name: step_3
+      description: step 0
+      run:
+          cmd: echo step0
+          depends: [step_0]
+    - name: step_4
+      description: step 0
+      run:
+          cmd: echo step0
+          depends: [step_1]
+    - name: step_5
+      description: step 0
+      run:
+          cmd: echo step0
+          depends: [step_2]
+    - name: step_6
+      description: step 0
+      run:
+          cmd: echo step0
+          depends: [step_4, step_3, step_5]
+
+
+
+
+
+
+
+merlin:
+  resources:
+    task_server: taskvine
+    workers:
+     default:
+      manager: merlin_test_manager
+      steps: [step_1, step_2, step_0, step_3]
+    managers:
+     merlin_test_manager:
+     
+  samples:
+    generate:
+      cmd: python $(SPECROOT)/make_samples.py --filepath=$(MERLIN_INFO)/samples.csv --number=$(N_SAMPLES)
+    file: $(MERLIN_INFO)/samples.csv
+    column_labels: [WORLD] 
+
+

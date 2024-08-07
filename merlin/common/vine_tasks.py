@@ -34,7 +34,6 @@ from __future__ import absolute_import, unicode_literals
 import json
 import logging
 import os
-import VineStem as stem
 from typing import Any, Dict, List, Optional
 
 # Need to disable an overwrite warning here since celery has an exception that we need that directly
@@ -53,6 +52,8 @@ from merlin.router import stop_workers
 from merlin.spec.expansion import parameter_substitutions_for_cmd, parameter_substitutions_for_sample
 from merlin.study.status import read_status, status_conflict_handler
 from merlin.utils import dict_deep_merge
+
+import ndcctools.taskvine.stem as stem
 
 
 retry_exceptions = (
@@ -78,7 +79,7 @@ STOP_COUNTDOWN = 60
 # R0914: too many local variables
 # R0915: too many statements
 
-def merlin_step(self, *args: Any, **kwargs: Any) -> Optional[ReturnCode]:  # noqa: C901 pylint: disable=R0912,R0915
+def merlin_step(*args: Any, **kwargs: Any) -> Optional[ReturnCode]:  # noqa: C901 pylint: disable=R0912,R0915
     """
     Executes a Merlin Step
     :param args: The arguments, one of which should be an instance of Step
@@ -247,13 +248,6 @@ def prepare_chain_workspace(sample_index, chain_):
         sample_index.write_multiple_sample_index_files()
         LOG.debug(f"...workspace {workspace} prepared.")
 
-
-@shared_task(
-    bind=True,
-    autoretry_for=retry_exceptions,
-    retry_backoff=True,
-    priority=get_priority(Priority.LOW),
-)
 def add_merlin_expanded_chain_to_chord(  # pylint: disable=R0913,R0914
     self,
     task_type,
@@ -362,7 +356,7 @@ def add_merlin_expanded_chain_to_chord(  # pylint: disable=R0913,R0914
     return ReturnCode.OK
 
 
-def add_simple_chain_to_chord(self, task_type, chain_, adapter_config):
+def add_simple_chain_to_chord(task_type, chain_, adapter_config):
     """
     Adds a chain of tasks to the current chord.
     :param self: The current task.
@@ -378,17 +372,17 @@ def add_simple_chain_to_chord(self, task_type, chain_, adapter_config):
         # a given sample.
 
         new_steps = [
-            task_type.s(step, adapter_config=adapter_config).set(
-                queue=step.get_task_queue(),
-                task_id=step.get_workspace(),
-            )
+            # TODO set correct manager
+            stem.Seed(task_type, step, adapter_config=adapter_config).set_manager("merlin_test_manager")
         ]
         all_chains.append(new_steps)
     chain_1d = get_1d_chain(all_chains)
-    launch_chain(self, chain_1d)
+    raise
+    print(chain_1d)
+    launch_chain(chain_1d)
+    
 
-
-def launch_chain(self: "Task", chain_1d: List["Signature"], condense_sig: "Signature" = None):  # noqa: F821
+def launch_chain(chain_1d: List["Signature"], condense_sig: "Signature" = None):  # noqa: F821
     """
     Given a 1D chain, appropriately launch the signatures it contains.
     If this is a local run, launch the signatures instantly.
@@ -404,20 +398,24 @@ def launch_chain(self: "Task", chain_1d: List["Signature"], condense_sig: "Signa
     # If there's nothing in the chain then we won't have to launch anything so check that first
     if chain_1d:
         # Case 1: local run; launch signatures instantly
-        if self.request.is_eager:
-            for sig in chain_1d:
-                sig.delay()
+        # TODO local run option
+        #if self.request.is_eager:
+        
+        #    for sig in chain_1d:
+        #        sig.delay()
         # Case 2: non-local run; signatures need to be added to the current chord
-        else:
+        
+        if 1:
             # Case a: we're dealing with a sample hierarchy and need to condense status files when we're done executing tasks
+            # TODO sample heiarchy option
             if condense_sig:
                 # This chord makes it so we'll process all tasks in chain_1d, then condense the status files when they're done
                 sample_chord = chord(chain_1d, condense_sig)
                 self.add_to_chord(sample_chord, lazy=False)
-            # Case b: no condensing is needed so just add all the signatures to the chord
+
+            # Case b: return signatures to be redistibuted.
             else:
-                for sig in chain_1d:
-                    self.add_to_chord(sig, lazy=False)
+                return stem.Bloom(stem.Group(chain_1d))
 
 
 def get_1d_chain(all_chains: List[List["Signature"]]) -> List["Signature"]:  # noqa: F821
@@ -446,6 +444,7 @@ def get_1d_chain(all_chains: List[List["Signature"]]) -> List["Signature"]:  # n
             # generates a new task signature, so we need to make
             # sure we are modifying task signatures before adding them to the
             # kwargs.
+            '''
             for j in reversed(range(len(all_chains))):
                 if j < len(all_chains) - 1:
                     # fmt: off
@@ -454,6 +453,7 @@ def get_1d_chain(all_chains: List[List["Signature"]]) -> List["Signature"]:  # n
                     )
                     # fmt: on
                     all_chains[j][i] = all_chains[j][i].replace(kwargs=new_kwargs)
+            '''
             chain_steps.append(all_chains[0][i])
 
     return chain_steps
@@ -573,7 +573,6 @@ def condense_status_files(self, *args: Any, **kwargs: Any) -> ReturnCode:  # pyl
 
 
 def expand_tasks_with_samples(  # pylint: disable=R0913,R0914
-    self,
     dag,
     chain_,
     samples,
@@ -668,7 +667,7 @@ def expand_tasks_with_samples(  # pylint: disable=R0913,R0914
                     found_tasks = True
     else:
         LOG.debug("queuing simple chain task")
-        add_simple_chain_to_chord(self, task_type, steps, adapter_config)
+        add_simple_chain_to_chord(task_type, steps, adapter_config)
         LOG.debug("simple chain task queued")
 
 
@@ -716,8 +715,9 @@ def queue_merlin_study(study, adapter):
                             merlin_step,
                             adapter,
                             study.level_max_dirs,
+                        ).set_manager("merlin_test_manager")
                         #TODO set manager
-                        ).set_manager(queue=egraph.step(chain_group[0][0]).get_task_queue())
+                        #).set_manager(queue=egraph.step(chain_group[0][0]).get_task_queue())
                         for gchain in chain_group
                     ]
                 )
@@ -725,6 +725,4 @@ def queue_merlin_study(study, adapter):
         )
         LOG.info("Launching tasks.")
         # TODO handling of stem runner. Possibly fork?
-        return celery_dag.delay(None)
-
-
+        dag.run()
