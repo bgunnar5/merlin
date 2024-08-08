@@ -38,10 +38,7 @@ from typing import Any, Dict, List, Optional
 
 # Need to disable an overwrite warning here since celery has an exception that we need that directly
 # overwrites a python built-in exception
-from celery import chain, chord, group, shared_task, signature
-from celery.exceptions import MaxRetriesExceededError, OperationalError, TimeoutError  # pylint: disable=W0622
 from filelock import FileLock, Timeout
-from redis.exceptions import TimeoutError as RedisTimeoutError
 
 from merlin.common.abstracts.enums import ReturnCode
 from merlin.common.sample_index import uniform_directories
@@ -107,9 +104,10 @@ def merlin_step(*args: Any, **kwargs: Any) -> Optional[ReturnCode]:  # noqa: C90
     next_in_chain: Optional[Step] = kwargs.pop("next_in_chain", None)
 
     if step:
-        self.max_retries = step.max_retries
+        max_retries = step.max_retries
         step_name: str = step.name()
         step_dir: str = step.get_workspace()
+        print(max_retries, step_name, step_dir)
         LOG.debug(f"merlin_step: step_name '{step_name}' step_dir '{step_dir}'")
         finished_filename: str = os.path.join(step_dir, "MERLIN_FINISHED")
 
@@ -128,20 +126,21 @@ def merlin_step(*args: Any, **kwargs: Any) -> Optional[ReturnCode]:  # noqa: C90
             # touch a file indicating we're done with this step
             with open(finished_filename, "a"):
                 pass
+        # TODO other return codes
         elif result == ReturnCode.DRY_OK:
             LOG.info(f"Dry-ran step '{step_name}' in '{step_dir}'.")
         elif result == ReturnCode.RESTART:
             step.restart = True
             try:
                 LOG.info(
-                    f"Step '{step_name}' in '{step_dir}' is being restarted ({self.request.retries + 1}/{self.max_retries})..."
+                    f"Step '{step_name}' in '{step_dir}' is being restarted ({self.request.retries + 1}/{max_retries})..."
                 )
                 step.mstep.mark_restart()
                 self.retry(countdown=step.retry_delay, priority=get_priority(Priority.RETRY))
             except MaxRetriesExceededError:
                 LOG.warning(
                     f"""*** Step '{step_name}' in '{step_dir}' exited with a MERLIN_RESTART command,
-                    but has already reached its retry limit ({self.max_retries}). Continuing with workflow."""
+                    but has already reached its retry limit ({max_retries}). Continuing with workflow."""
                 )
                 result = ReturnCode.SOFT_FAIL
                 # Need to call mark_end again since we switched from RESTART to SOFT_FAIL
@@ -150,14 +149,14 @@ def merlin_step(*args: Any, **kwargs: Any) -> Optional[ReturnCode]:  # noqa: C90
             step.restart = False
             try:
                 LOG.info(
-                    f"Step '{step_name}' in '{step_dir}' is being retried ({self.request.retries + 1}/{self.max_retries})..."
+                    f"Step '{step_name}' in '{step_dir}' is being retried ({self.request.retries + 1}/{max_retries})..."
                 )
                 step.mstep.mark_restart()
                 self.retry(countdown=step.retry_delay, priority=get_priority(Priority.RETRY))
             except MaxRetriesExceededError:
                 LOG.warning(
                     f"""*** Step '{step_name}' in '{step_dir}' exited with a MERLIN_RETRY command,
-                    but has already reached its retry limit ({self.max_retries}). Continuing with workflow."""
+                    but has already reached its retry limit ({max_retries}). Continuing with workflow."""
                 )
                 result = ReturnCode.SOFT_FAIL
                 # Need to call mark_end again since we switched from RETRY to SOFT_FAIL
@@ -186,6 +185,7 @@ def merlin_step(*args: Any, **kwargs: Any) -> Optional[ReturnCode]:  # noqa: C90
 
         # queue off the next task in a chain while adding it to the current chord so that the chordfinisher actually
         # waits for the next task in the chain
+        # TODO next in chain
         if next_in_chain is not None:
             if self.request.is_eager:
                 LOG.debug(f"calling next_in_chain {signature(next_in_chain)}")
@@ -377,9 +377,7 @@ def add_simple_chain_to_chord(task_type, chain_, adapter_config):
         ]
         all_chains.append(new_steps)
     chain_1d = get_1d_chain(all_chains)
-    raise
-    print(chain_1d)
-    launch_chain(chain_1d)
+    return launch_chain(chain_1d)
     
 
 def launch_chain(chain_1d: List["Signature"], condense_sig: "Signature" = None):  # noqa: F821
@@ -413,7 +411,7 @@ def launch_chain(chain_1d: List["Signature"], condense_sig: "Signature" = None):
                 sample_chord = chord(chain_1d, condense_sig)
                 self.add_to_chord(sample_chord, lazy=False)
 
-            # Case b: return signatures to be redistibuted.
+            # Case b: return tasks to be rescheduled.
             else:
                 return stem.Bloom(stem.Group(chain_1d))
 
@@ -615,6 +613,7 @@ def expand_tasks_with_samples(  # pylint: disable=R0913,R0914
     LOG.debug("assembling steps")
     # the steps in the chain
     steps = [dag.step(name) for name in chain_]
+    return(f"steps")
 
     # sub in globs prior to expansion
     # sub the glob command
@@ -622,15 +621,10 @@ def expand_tasks_with_samples(  # pylint: disable=R0913,R0914
         step.clone_changing_workspace_and_cmd(cmd_replacement_pairs=parameter_substitutions_for_cmd(glob_path, sample_paths))
         for step in steps
     ]
-
-    # workspaces = [step.get_workspace() for step in steps]
-    # LOG.debug(f"workspaces : {workspaces}")
-
     needs_expansion = is_chain_expandable(steps, labels)
 
     LOG.debug(f"needs_expansion {needs_expansion}")
     if needs_expansion:
-        # prepare_chain_workspace(sample_index, steps)
         sample_index.name = ""
         LOG.debug("queuing merlin expansion tasks")
         found_tasks = False
@@ -667,13 +661,15 @@ def expand_tasks_with_samples(  # pylint: disable=R0913,R0914
                     found_tasks = True
     else:
         LOG.debug("queuing simple chain task")
-        add_simple_chain_to_chord(task_type, steps, adapter_config)
+        return add_simple_chain_to_chord(task_type, steps, adapter_config)
         LOG.debug("simple chain task queued")
 
 
 # TODO Shuts down workers 
+# Currently there is not a way to shutdown workers via a task.
+# This would somehow have to be distributed to the manager to the manager. 
 
-def shutdown_workers(self, shutdown_queues):  # pylint: disable=W0613
+def shutdown_workers(managers):  # pylint: disable=W0613
     """
     This task issues a call to shutdown workers.
 
@@ -687,7 +683,7 @@ def shutdown_workers(self, shutdown_queues):  # pylint: disable=W0613
         LOG.warning(f"Shutting down workers in queues {shutdown_queues}!")
     else:
         LOG.warning("Shutting down workers in all queues!")
-    return stop_workers("celery", None, shutdown_queues, None)
+    return
 
 
 def queue_merlin_study(study, adapter):
@@ -702,7 +698,6 @@ def queue_merlin_study(study, adapter):
 
     # magic to turn graph into celery tasks
     LOG.info("Converting graph to tasks.")
-
     if study.expanded_spec.merlin["resources"]["task_server"] == "taskvine":
         dag = stem.Chain(
                 stem.Group(
@@ -716,7 +711,7 @@ def queue_merlin_study(study, adapter):
                             adapter,
                             study.level_max_dirs,
                         ).set_manager("merlin_test_manager")
-                        #TODO set manager
+                        #TODO VINE get actual manager name
                         #).set_manager(queue=egraph.step(chain_group[0][0]).get_task_queue())
                         for gchain in chain_group
                     ]
@@ -724,5 +719,5 @@ def queue_merlin_study(study, adapter):
                 for chain_group in groups_of_chains[1:]
         )
         LOG.info("Launching tasks.")
-        # TODO handling of stem runner. Possibly fork?
+        # TODO VINE possibly setup another method to run DAG local or remote
         dag.run()

@@ -266,7 +266,9 @@ class MerlinStepRecord(_StepRecord):
         }
 
         # Add celery specific info
-        if task_server == "celery":
+        # if task_server == "celery":
+        # TODO make an option for using TaskVine
+        if 0:
             from merlin.celery import app  # pylint: disable=C0415
 
             # If the tasks are always eager, this is a local run and we won't have workers running
@@ -286,6 +288,7 @@ class MerlinStepRecord(_StepRecord):
                 elif current_worker not in status_info[self.name]["workers"]:
                     status_info[self.name]["workers"].append(current_worker)
 
+        
         LOG.info(f"Writing status for {self.name} to '{status_filepath}...")
         write_status(status_info, status_filepath, f"{self.workspace.value}/status.lock")
         LOG.info(f"Status for {self.name} successfully written.")
