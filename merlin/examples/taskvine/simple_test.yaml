@@ -1,0 +1,58 @@
+description:
+    name: simple test
+    description: a very simple merlin workflow utilizing taskvine as a task server
+
+study:
+    - name: step_0
+      description: step 0
+      run:
+          cmd: echo "executing step 0"
+    - name: step_1
+      description: step 1
+      run:
+          cmd: echo "executing step 1"
+    - name: step_2
+      description: step 2
+      run:
+          cmd: echo "executing step 2"
+    - name: step_3
+      description: step 3
+      run:
+          cmd: echo "executing step 3"
+          depends: [step_0]
+    - name: step_4
+      description: step 4
+      run:
+          cmd: echo "executing step 4"
+          depends: [step_0]
+    - name: step_5
+      description: step 5
+      run:
+          cmd: echo "executing step 5"
+          depends: [step_1]
+    - name: step_6
+      description: step 6
+      run:
+          cmd: echo "executing step 6"
+          depends: [step_2]
+    - name: step_7
+      description: step 7
+      run:
+          cmd: echo "executing step 7"
+          depends: [step_4, step_3, step_5]
+    - name: step_8
+      description: step 8
+      run:
+          cmd: echo "executing step 8"
+          depends: [step_4, step_3, step_5]
+
+merlin:
+  resources:
+    task_server: taskvine
+    workers:
+     default:
+      manager: merlin_test_manager
+      steps: [step_0, step_1, step_2, step_3, step_4, step_5, step_6, step_7, step_8]
+    managers:
+     merlin_test_manager:
+     

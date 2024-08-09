@@ -36,6 +36,12 @@ import logging
 import os
 from typing import Any, Dict, List, Optional
 
+from celery import chain, chord, group, shared_task, signature
+from celery.exceptions import MaxRetriesExceededError, OperationalError, TimeoutError  # pylint: disable=W0622
+from filelock import FileLock, Timeout
+from redis.exceptions import TimeoutError as RedisTimeoutError
+
+
 # Need to disable an overwrite warning here since celery has an exception that we need that directly
 # overwrites a python built-in exception
 from filelock import FileLock, Timeout
@@ -249,7 +255,6 @@ def prepare_chain_workspace(sample_index, chain_):
         LOG.debug(f"...workspace {workspace} prepared.")
 
 def add_merlin_expanded_chain_to_chord(  # pylint: disable=R0913,R0914
-    self,
     task_type,
     chain_,
     samples,
@@ -288,7 +293,7 @@ def add_merlin_expanded_chain_to_chord(  # pylint: disable=R0913,R0914
             LOG.debug(f"expanding step {step.name()} in workspace {workspace}")
             new_chain = []
             for sample_id, sample in enumerate(samples):
-                new_step = task_type.s(
+                new_step = stem.Seed(task_type,
                     step.clone_changing_workspace_and_cmd(
                         new_workspace=os.path.join(workspace, relative_paths[sample_id]),
                         cmd_replacement_pairs=parameter_substitutions_for_sample(
@@ -300,28 +305,30 @@ def add_merlin_expanded_chain_to_chord(  # pylint: disable=R0913,R0914
                     ),
                     adapter_config=adapter_config,
                     top_lvl_workspace=top_lvl_workspace,
-                )
-                new_step.set(queue=step.get_task_queue())
-                new_step.set(task_id=os.path.join(workspace, relative_paths[sample_id]))
+                ).set_manager("merlin_test_manager")
+                #new_step.set(queue=step.get_task_queue())
+                #new_step.set(task_id=os.path.join(workspace, relative_paths[sample_id]))
                 new_chain.append(new_step)
 
             all_chains.append(new_chain)
 
         # Only need to condense status files if there's more than 1 sample
         if num_samples > 1:
-            condense_sig = condense_status_files.s(
-                sample_index=sample_index,
-                workspace=top_lvl_workspace,
-                condensed_workspace=chain_[0].mstep.condensed_workspace,
-            ).set(
-                queue=chain_[0].get_task_queue(),
-            )
+            condense_sig = None
+            # TODO VINE condense sig option
+            #condense_sig = condense_status_files.s(
+            #    sample_index=sample_index,
+            #    workspace=top_lvl_workspace,
+            #    condensed_workspace=chain_[0].mstep.condensed_workspace,
+            #).set(
+            #    queue=chain_[0].get_task_queue(),
+            #)
         else:
             condense_sig = None
 
         LOG.debug("adding chain to chord")
         chain_1d = get_1d_chain(all_chains)
-        launch_chain(self, chain_1d, condense_sig=condense_sig)
+        launch_chain(chain_1d, condense_sig=condense_sig)
         LOG.debug("chain added to chord")
     else:
         # recurse down the sample_index hierarchy
@@ -343,6 +350,7 @@ def add_merlin_expanded_chain_to_chord(  # pylint: disable=R0913,R0914
                 next_step.set(queue=chain_[0].get_task_queue())
                 LOG.debug(f"recursing with range {next_index.min}:{next_index.max}, {next_index.name} {signature(next_step)}")
                 LOG.debug(f"queuing samples[{next_index.min}:{next_index.max}] in for {chain_} in {next_index.name}...")
+                # TODO VINE something here probably
                 if self.request.is_eager:
                     next_step.delay()
                 else:
@@ -372,8 +380,10 @@ def add_simple_chain_to_chord(task_type, chain_, adapter_config):
         # a given sample.
 
         new_steps = [
-            # TODO set correct manager
+            # TODO VINE set correct manager
+            # Here it is probably fine to use the same manager as this current tasks's
             stem.Seed(task_type, step, adapter_config=adapter_config).set_manager("merlin_test_manager")
+            # TODO VINE set workspace ?
         ]
         all_chains.append(new_steps)
     chain_1d = get_1d_chain(all_chains)
@@ -395,8 +405,8 @@ def launch_chain(chain_1d: List["Signature"], condense_sig: "Signature" = None):
     """
     # If there's nothing in the chain then we won't have to launch anything so check that first
     if chain_1d:
-        # Case 1: local run; launch signatures instantly
-        # TODO local run option
+        # Case 1: local run; execute locally
+        # TODO VINE local run option
         #if self.request.is_eager:
         
         #    for sig in chain_1d:
@@ -405,7 +415,7 @@ def launch_chain(chain_1d: List["Signature"], condense_sig: "Signature" = None):
         
         if 1:
             # Case a: we're dealing with a sample hierarchy and need to condense status files when we're done executing tasks
-            # TODO sample heiarchy option
+            # TODO VINE sample heiarchy option
             if condense_sig:
                 # This chord makes it so we'll process all tasks in chain_1d, then condense the status files when they're done
                 sample_chord = chord(chain_1d, condense_sig)
@@ -428,32 +438,13 @@ def get_1d_chain(all_chains: List[List["Signature"]]) -> List["Signature"]:  # n
         chain_steps = all_chains[0]
 
     if len(all_chains) > 1:
-        # in this case, we need to make a chain.
-        # Celery chains do not natively update any chords they have to be in,
-        # which can lead to a chord finishing prematurely,
-        # causing future steps to execute before their dependencies are resolved.
-        # Celery does provide an API to add a method to a chord dynamically
-        # during execution of a task belonging to that chord,
-        # so we set up a chain by passing the child member of a chain in as an
-        # argument to the signature of the parent member of a chain.
         length = len(all_chains[0])
-        for i in range(length):
-            # Do the following in reverse order because the replace method
-            # generates a new task signature, so we need to make
-            # sure we are modifying task signatures before adding them to the
-            # kwargs.
-            '''
+        for i in range(length): 
+            chain_list = []
             for j in reversed(range(len(all_chains))):
-                if j < len(all_chains) - 1:
-                    # fmt: off
-                    new_kwargs = signature(all_chains[j][i]).kwargs.update(
-                        {"next_in_chain": all_chains[j + 1][i]}
-                    )
-                    # fmt: on
-                    all_chains[j][i] = all_chains[j][i].replace(kwargs=new_kwargs)
-            '''
-            chain_steps.append(all_chains[0][i])
-
+                chain_list.insert(0,all_chains[j][i])
+            chain = stem.Chain(chain_list)
+            chain_steps.append(chain)
     return chain_steps
 
 
@@ -613,7 +604,6 @@ def expand_tasks_with_samples(  # pylint: disable=R0913,R0914
     LOG.debug("assembling steps")
     # the steps in the chain
     steps = [dag.step(name) for name in chain_]
-    return(f"steps")
 
     # sub in globs prior to expansion
     # sub the glob command
@@ -624,7 +614,10 @@ def expand_tasks_with_samples(  # pylint: disable=R0913,R0914
     needs_expansion = is_chain_expandable(steps, labels)
 
     LOG.debug(f"needs_expansion {needs_expansion}")
+    
+    # TODO VINE ensure the needs_expansion case operates correctly
     if needs_expansion:
+        seeds = []
         sample_index.name = ""
         LOG.debug("queuing merlin expansion tasks")
         found_tasks = False
@@ -641,46 +634,44 @@ def expand_tasks_with_samples(  # pylint: disable=R0913,R0914
                         f"generating next step for range {next_index.min}:{next_index.max} {next_index.max - next_index.min}"
                     )
                     next_index.name = next_index_path
-                    sig = add_merlin_expanded_chain_to_chord.s(
-                        task_type,
-                        steps,
-                        samples[next_index.min : next_index.max],
-                        labels,
-                        next_index,
-                        adapter_config,
-                        next_index.min,
-                    )
-                    sig.set(queue=steps[0].get_task_queue())
-
-                    if self.request.is_eager:
-                        sig.delay()
-                    else:
+                    seed = stem.Seed(add_merlin_expanded_chain_to_chord,
+                                    task_type,
+                                    steps,
+                                    samples[next_index.min : next_index.max],
+                                    labels,
+                                    next_index,
+                                    adapter_config,
+                                    next_index.min,
+                    ).set_manager("merlin_test_manager")
+                    # TODO VINE set manager correctly
+                    #)sig.set(queue=steps[0].get_task_queue())
+                    # TODO VINE local execution option
+                    #if self.request.is_eager:
+                    #    sig.delay()
+                    if 1:
                         LOG.info(f"queuing expansion task {next_index.min}:{next_index.max}")
-                        self.add_to_chord(sig, lazy=False)
+                        seeds.append(seed)
                     LOG.info(f"merlin expansion task {next_index.min}:{next_index.max} queued")
                     found_tasks = True
+
+        return stem.Bloom(stem.Group(seeds))
     else:
+        # A Stem Bloom is to be returned which will return tasks to be scheduled
         LOG.debug("queuing simple chain task")
         return add_simple_chain_to_chord(task_type, steps, adapter_config)
         LOG.debug("simple chain task queued")
 
 
-# TODO Shuts down workers 
+# TODO VINE Shuts down workers 
 # Currently there is not a way to shutdown workers via a task.
 # This would somehow have to be distributed to the manager to the manager. 
 
-def shutdown_workers(managers):  # pylint: disable=W0613
+def shutdown_workers(manager):  # pylint: disable=W0613
     """
     This task issues a call to shutdown workers.
-
-    It wraps the stop_celery_workers call as a task.
-    It is acknolwedged right away, so that it will not be requeued when
-    executed by a worker.
-
-    :param: shutdown_queues: The specific queues to shutdown (list)
     """
     if shutdown_queues is not None:
-        LOG.warning(f"Shutting down workers in queues {shutdown_queues}!")
+        LOG.warning(f"Shutting down workers for manager {shutdown_queues}!")
     else:
         LOG.warning("Shutting down workers in all queues!")
     return
