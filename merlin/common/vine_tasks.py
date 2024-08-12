@@ -306,7 +306,7 @@ def add_merlin_expanded_chain_to_chord(  # pylint: disable=R0913,R0914
                     adapter_config=adapter_config,
                     top_lvl_workspace=top_lvl_workspace,
                 ).set_manager("merlin_test_manager")
-                #new_step.set(queue=step.get_task_queue())
+                # TODO VINE is this needed?
                 #new_step.set(task_id=os.path.join(workspace, relative_paths[sample_id]))
                 new_chain.append(new_step)
 
@@ -314,21 +314,17 @@ def add_merlin_expanded_chain_to_chord(  # pylint: disable=R0913,R0914
 
         # Only need to condense status files if there's more than 1 sample
         if num_samples > 1:
-            condense_sig = None
-            # TODO VINE condense sig option
-            #condense_sig = condense_status_files.s(
-            #    sample_index=sample_index,
-            #    workspace=top_lvl_workspace,
-            #    condensed_workspace=chain_[0].mstep.condensed_workspace,
-            #).set(
-            #    queue=chain_[0].get_task_queue(),
-            #)
+            condense_sig = stem.Seed(condense_status_files,
+                                sample_index=sample_index,
+                                workspace=top_lvl_workspace,
+                                condensed_workspace=chain_[0].mstep.condensed_workspace,
+            ).set_manager("merlin_test_manager")
         else:
             condense_sig = None
 
         LOG.debug("adding chain to chord")
         chain_1d = get_1d_chain(all_chains)
-        launch_chain(chain_1d, condense_sig=condense_sig)
+        return launch_chain(chain_1d, condense_sig=condense_sig)
         LOG.debug("chain added to chord")
     else:
         # recurse down the sample_index hierarchy
@@ -418,8 +414,8 @@ def launch_chain(chain_1d: List["Signature"], condense_sig: "Signature" = None):
             # TODO VINE sample heiarchy option
             if condense_sig:
                 # This chord makes it so we'll process all tasks in chain_1d, then condense the status files when they're done
-                sample_chord = chord(chain_1d, condense_sig)
-                self.add_to_chord(sample_chord, lazy=False)
+                sample_chain = stem.Group(stem.Chain([stem.Group(chain_1d), condense_sig]))
+                return stem.Bloom(sample_chain)
 
             # Case b: return tasks to be rescheduled.
             else:
@@ -496,7 +492,7 @@ def gather_statuses(
 
     return condensed_statuses
 
-def condense_status_files(self, *args: Any, **kwargs: Any) -> ReturnCode:  # pylint: disable=R0914,W0613
+def condense_status_files(*args: Any, **kwargs: Any) -> ReturnCode:  # pylint: disable=R0914,W0613
     """
     After a section of the sample tree has finished, condense the status files.
 
