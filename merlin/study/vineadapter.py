@@ -95,7 +95,39 @@ def start_taskvine_workers(
                                 commands for them are returned
     """
     # TODO Start up the workers
-    print(spec.merlin["resources"]["workers"])
+    for worker in spec.merlin["resources"]["workers"]:
+        
+        command = ["vine_factory"]
+
+        command.append("-T")
+        command.append(f"{spec.batch["type"]}")
+
+        command.append("-M")
+        command.append(f"{spec.merlin["resources"]["workers"][worker]["manager"]}") 
+        
+        cores = spec.merlin["resources"]["workers"][worker]["cores"]
+        if cores:
+            command.append("--cores")
+            command.append(f"{cores}")
+
+        disk = spec.merlin["resources"]["workers"][worker]["disk"]
+        if disk:
+            command.append("--disk")
+            command.append(f"{disk}")
+
+        memory = spec.merlin["resources"]["workers"][worker]["memory"]
+        if memory:
+            command.append("--memory")
+            command.append(f"{memory}")
+     
+        command.append(f"-w {nodes}")
+        command.append(f"-W {nodes}")
+
+        if just_return_command: 
+            return command
+
+        else:
+            subprocess.Popen(command)
 
 
 def purge_taskvine_tasks(spec: MerlinSpec, force: bool):
