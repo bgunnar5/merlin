@@ -120,6 +120,7 @@ def start_taskvine_workers(
             command.append("--memory")
             command.append(f"{memory}")
      
+        nodes = spec.merlin["resources"]["workers"][worker]["nodes"]
         command.append(f"-w {nodes}")
         command.append(f"-W {nodes}")
 

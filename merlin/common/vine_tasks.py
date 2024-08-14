@@ -305,7 +305,7 @@ def add_merlin_expanded_chain_to_chord(  # pylint: disable=R0913,R0914
                     ),
                     adapter_config=adapter_config,
                     top_lvl_workspace=top_lvl_workspace,
-                ).set_manager("merlin_test_manager")
+                ).set_manager(step.get_task_manager())
                 # TODO VINE is this needed?
                 #new_step.set(task_id=os.path.join(workspace, relative_paths[sample_id]))
                 new_chain.append(new_step)
@@ -318,7 +318,7 @@ def add_merlin_expanded_chain_to_chord(  # pylint: disable=R0913,R0914
                                 sample_index=sample_index,
                                 workspace=top_lvl_workspace,
                                 condensed_workspace=chain_[0].mstep.condensed_workspace,
-            ).set_manager("merlin_test_manager")
+            ).set_manager(step.get_task_manager())
         else:
             condense_sig = None
 
@@ -376,10 +376,8 @@ def add_simple_chain_to_chord(task_type, chain_, adapter_config):
         # a given sample.
 
         new_steps = [
-            # TODO VINE set correct manager
-            # Here it is probably fine to use the same manager as this current tasks's
-            stem.Seed(task_type, step, adapter_config=adapter_config).set_manager("merlin_test_manager")
-            # TODO VINE set workspace ?
+            stem.Seed(task_type, step, adapter_config=adapter_config).set_manager(step.get_task_manager())
+            # TODO VINE task_id get workspace ?
         ]
         all_chains.append(new_steps)
     chain_1d = get_1d_chain(all_chains)
@@ -638,9 +636,8 @@ def expand_tasks_with_samples(  # pylint: disable=R0913,R0914
                                     next_index,
                                     adapter_config,
                                     next_index.min,
-                    ).set_manager("merlin_test_manager")
-                    # TODO VINE set manager correctly
-                    #)sig.set(queue=steps[0].get_task_queue())
+                    ).set_manager(steps[0].get_task_manager())
+
                     # TODO VINE local execution option
                     #if self.request.is_eager:
                     #    sig.delay()
@@ -697,9 +694,7 @@ def queue_merlin_study(study, adapter):
                             merlin_step,
                             adapter,
                             study.level_max_dirs,
-                        ).set_manager("merlin_test_manager")
-                        #TODO VINE get actual manager name
-                        #).set_manager(queue=egraph.step(chain_group[0][0]).get_task_queue())
+                        ).set_manager(egraph.step(chain_group[0][0]).get_task_manager())
                         for gchain in chain_group
                     ]
                 )

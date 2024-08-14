@@ -382,11 +382,14 @@ class MerlinSpec(YAMLSpecification):  # pylint: disable=R0902
 
     def fill_taskvine_defaults(self):
         """Fill default values for TaskVine workers and managers."""
+            
         if self.merlin["resources"]["managers"] is None:
             self.merlin["resources"]["managers"] = defaults.TASKVINE_MANAGER
 
         if self.merlin["resources"]["workers"] is None:
             self.merlin["resources"]["workers"] = {"default_worker": defaults.TASKVINE_WORKER}
+
+        step_mapping = {}
 
         for _, worker_settings in self.merlin["resources"]["workers"].items():
             MerlinSpec.fill_missing_defaults(worker_settings, defaults.TASKVINE_WORKER)
@@ -394,6 +397,13 @@ class MerlinSpec(YAMLSpecification):  # pylint: disable=R0902
             # Check that the manager that the user wants to use for this worker is actually defined
             if worker_settings["manager"] not in self.merlin["resources"]["managers"]:
                 raise ValueError(f"The manager '{worker_settings['manager']}' is not defined.")
+
+            for step in worker_settings["steps"]:
+                step_mapping[step] = worker_settings["manager"]
+
+        for step in self.study:
+            if step["name"] in step_mapping:
+                step["run"]["manager"] = step_mapping[step["name"]]
 
     def process_spec_defaults(self):
         """Fills in the default values if they aren't there already"""

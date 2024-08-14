@@ -383,6 +383,10 @@ class Step:
                 else:
                     queue = queue_tag + val
         return queue
+    
+    def get_task_manager(self):
+        return self.mstep.step.__dict__["run"]["manager"]
+        
 
     @property
     def retry_delay(self):
