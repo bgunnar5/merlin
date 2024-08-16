@@ -65,14 +65,6 @@ def run_taskvine(study, run_mode=None):
     from merlin.common.vine_tasks import queue_merlin_study  # pylint: disable=C0415, R0401
 
     adapter_config = study.get_adapter_config(override_type="local")
-    '''
-    if run_mode == "local":
-        app.conf.task_always_eager = True
-        app.conf.task_eager_propogates = True
-    else:
-        # Check for server
-        #app.connection().connect()
-    '''
 
     # Send the tasks to the server
     queue_merlin_study(study, adapter_config)
@@ -148,7 +140,19 @@ def query_taskvine_study(spec: MerlinSpec):
 
     :param spec: A MerlinSpec object representing our study
     """
-    # TODO implement query functionality
+    result = subprocess.run(["vine_status"], capture_output=True)
+    # PROJECT            HOST                   PORT WAITING RUNNING COMPLETE WORKERS
+    
+    study_info = {"waiting":0, "running":0, "complete":0, "workers":0} 
+    lines = result.stdout.splitlines()
+    for line in lines[1:]:
+        line = line.decode("utf-8") 
+        manager, host, port, waiting, running, complete, workers = line.split(maxspit=6)
+        if manager in spec.merlin["resources"]["managers"]:
+            study_info["waiting"] += int(waiting)
+            study_info["running"] += int(running)
+            study_info["complete"] += int(complete)
+            study_info["workers"] += int(workers)
     print(spec.merlin["resources"]["managers"])
 
 
