@@ -33,6 +33,7 @@ This module provides an adapter to the Celery Distributed Task Queue.
 """
 import logging
 import os
+import psutil
 import socket
 import subprocess
 import time
@@ -132,7 +133,9 @@ def start_taskvine_workers(
             return command
 
         else:
-            subprocess.Popen(command)
+            vine_factory_process = subprocess.Popen(command)
+            with get_vine_redis_connection() as redis_conn:
+                redis_conn.hset("vine_factory", "pid", vine_factory_process.pid)
 
 
 def purge_taskvine_tasks(spec: MerlinSpec, force: bool):
@@ -193,7 +196,24 @@ def query_taskvine_study(spec: MerlinSpec):
     print(headers, values)
     print(tabulate(values, headers=headers))
     print(study_info)
-    
+
+
+def stop_taskvine_workers():
+    """
+    Stop the taskvine workers by killing the vine factory process
+    that's keeping them alive.
+    """
+    with get_vine_redis_connection() as redis_conn:
+        vine_factory_pid = int(redis_conn.hget("vine_factory", "pid"))
+
+    LOG.info(f"Attempting to stop vine factory with pid {vine_factory_pid}")
+    if psutil.pid_exists(vine_factory_pid):
+        factory_process = psutil.Process(vine_factory_pid)
+        factory_process.kill()
+        LOG.info(f"Vine factory successfully killed. Workers should now be stopped.")
+    else:
+        LOG.warning(f"Vine factory with pid {vine_factory_pid} does not exist. Perhaps it has already been stopped?")
+
 
 
 def get_running_managers(celery_app_name: str, test_mode: bool = False) -> List[str]:

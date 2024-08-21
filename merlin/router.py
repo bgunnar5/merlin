@@ -45,7 +45,8 @@ from merlin.study.vineadapter import (
     purge_taskvine_tasks,
     query_taskvine_study,
     run_taskvine,
-    start_taskvine_workers
+    start_taskvine_workers,
+    stop_taskvine_workers
 )
 from merlin.study.celeryadapter import (
     build_set_of_queues,
@@ -241,6 +242,8 @@ def stop_workers(task_server, spec_worker_names, queues, workers_regex):
     if task_server == "celery":  # pylint: disable=R1705
         # Stop workers
         stop_celery_workers(queues, spec_worker_names, workers_regex)
+    elif task_server == "taskvine":
+        stop_taskvine_workers()
     else:
         LOG.error("Celery is not specified as the task server!")
 
