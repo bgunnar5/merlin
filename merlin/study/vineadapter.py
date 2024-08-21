@@ -140,20 +140,48 @@ def query_taskvine_study(spec: MerlinSpec):
 
     :param spec: A MerlinSpec object representing our study
     """
+    study_info = {"waiting":0, 
+                  "running":0,
+                  "complete":0, 
+                  "workers":0,
+                  "cores":0,
+                  "cores_inuse":0,
+                  "memory":0,
+                  "memory_inuse":0,
+                  "gpus":0,
+                  "gpus_inuse":0} 
     result = subprocess.run(["vine_status"], capture_output=True)
-    # PROJECT            HOST                   PORT WAITING RUNNING COMPLETE WORKERS
-    
-    study_info = {"waiting":0, "running":0, "complete":0, "workers":0} 
+    # MANAGER HOST PORT WAITING RUNNING COMPLETE WORKERS 
     lines = result.stdout.splitlines()
     for line in lines[1:]:
         line = line.decode("utf-8") 
-        manager, host, port, waiting, running, complete, workers = line.split(maxspit=6)
-        if manager in spec.merlin["resources"]["managers"]:
+        manager, host, port, waiting, running, complete, workers = line.split(maxsplit=6)
+        #if manager in spec.merlin["resources"]["managers"]:
+        if 1:
             study_info["waiting"] += int(waiting)
             study_info["running"] += int(running)
             study_info["complete"] += int(complete)
             study_info["workers"] += int(workers)
-    print(spec.merlin["resources"]["managers"])
+    result = subprocess.run(["vine_status", "-R"], capture_output=True)
+    # MANAGER CORES INUSE MEM(GB) INUSE GPUS INUSE 
+    lines = result.stdout.splitlines()
+    for line in lines[1:]:
+        line = line.decode("utf-8") 
+        manager, cores, cores_inuse, memory, memory_inuse, gpus, gpus_inuse = line.split(maxsplit=6)
+        #if manager in spec.merlin["resources"]["managers"]:
+        if 1:
+            study_info["cores"] += int(cores)
+            study_info["cores_inuse"] += int(cores_inuse)
+            study_info["memory"] += int(memory)
+            study_info["memory_inuse"] += int(memory_inuse)
+            study_info["gpus"] += int(gpus)
+            study_info["gpus_inuse"] += int(gpus_inuse)
+    headers = list(study_info.keys())
+    values = list(study_info.values())
+    print(headers, values)
+    print(tabulate(values, headers=headers))
+    print(study_info)
+    
 
 
 def get_running_managers(celery_app_name: str, test_mode: bool = False) -> List[str]:

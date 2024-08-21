@@ -638,7 +638,10 @@ def expand_tasks_with_samples(  # pylint: disable=R0913,R0914
                                     next_index.min,
                     ).set_manager(steps[0].get_task_manager())
 
-                    # TODO VINE local execution option
+                    # TODO VINE possible local execution option:
+                    # there does not exsist the functionallity 
+                    # to schedule to the manager remotely so a group 
+                    # of tasks needs to retuned together. 
                     #if self.request.is_eager:
                     #    sig.delay()
                     if 1:

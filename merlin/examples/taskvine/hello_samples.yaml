@@ -23,16 +23,20 @@ study:
           cmd: print("Hurrah, we did it!")
           depends: [step_1_*]
           shell: /usr/bin/env python3
+          
+
+#batch:
+#   type: slurm
 
 merlin:
     resources:
       task_server: taskvine
       workers:
        default:
-        manager: merlin_test_manager
+        manager: hello_samples_manager
         steps: [step_1, step_2]
       managers:
-       merlin_test_manager:
+       hello_samples_manager:
     samples:
         generate:
             cmd: python3 $(SPECROOT)/make_samples.py --filepath=$(MERLIN_INFO)/samples.csv --number=$(N_SAMPLES)
