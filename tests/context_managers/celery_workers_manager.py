@@ -80,8 +80,9 @@ class CeleryWorkersManager:
             try:
                 if str(pid) in ps_proc.stdout:
                     os.kill(pid, signal.SIGKILL)
-            except ProcessLookupError as exc:
-                raise ProcessLookupError(f"PID {pid} not found. Output of 'ps ux':\n{ps_proc.stdout}") from exc
+            # If the process can't be found then it doesn't exist anymore
+            except ProcessLookupError:
+                pass
 
     def _is_worker_ready(self, worker_name: str, verbose: bool = False) -> bool:
         """
@@ -158,6 +159,8 @@ class CeleryWorkersManager:
             self.stop_all_workers()
             raise ValueError(f"The worker {worker_name} is already running. Choose a different name.")
 
+        queues = [f"[merlin]_{queue}" for queue in queues]
+
         # Create the launch command for this worker
         worker_launch_cmd = [
             "worker",
@@ -174,7 +177,7 @@ class CeleryWorkersManager:
         # Create an echo command to simulate a running celery worker since our celery worker will be spun up in
         # a different process and we won't be able to see it with 'ps ux' like we normally would
         echo_process = subprocess.Popen(  # pylint: disable=consider-using-with
-            f"echo 'celery merlin_test_app {' '.join(worker_launch_cmd)}'; sleep inf",
+            f"echo 'celery -A merlin_test_app {' '.join(worker_launch_cmd)}'; sleep inf",
             shell=True,
             preexec_fn=os.setpgrp,  # Make this the parent of the group so we can kill the 'sleep inf' that's spun up
         )
