@@ -63,29 +63,40 @@ class RedisConnectionManager:
 
         :return: Redis connection object that can be used to access values for the manager.
         """
-        from merlin.config.configfile import CONFIG
-        from merlin.config.results_backend import get_backend_password
+        from merlin.config.configfile import CONFIG  # pylint: disable=import-outside-toplevel
+        from merlin.config.results_backend import get_backend_password  # pylint: disable=import-outside-toplevel
 
-        password_file = CONFIG.results_backend.password
-        try:
-            password = get_backend_password(password_file)
-        except IOError:
-            password = None
-            if hasattr(CONFIG.results_backend, "password"):
-                password = CONFIG.results_backend.password
+        password_file = CONFIG.results_backend.password if hasattr(CONFIG.results_backend, "password") else None
+        server = CONFIG.results_backend.server if hasattr(CONFIG.results_backend, "server") else None
+        port = CONFIG.results_backend.port if hasattr(CONFIG.results_backend, "port") else None
+        results_db_num = CONFIG.results_backend.db_num if hasattr(CONFIG.results_backend, "db_num") else None
+        username = CONFIG.results_backend.username if hasattr(CONFIG.results_backend, "username") else None
 
-        has_ssl = hasattr(CONFIG.results_backend, "cert_reqs")
-        ssl_cert_reqs = "required"
-        if has_ssl:
-            ssl_cert_reqs = CONFIG.results_backend.cert_reqs
+        password = None
+        if password_file is not None:
+            try:
+                password = get_backend_password(password_file)
+            except IOError:
+                if hasattr(CONFIG.results_backend, "password"):
+                    password = CONFIG.results_backend.password
 
-        return redis.Redis(
-            host=CONFIG.results_backend.server,
-            port=CONFIG.results_backend.port,
-            db=CONFIG.results_backend.db_num + self.db_num,  # Increment db_num to avoid conflicts
-            username=CONFIG.results_backend.username,
-            password=password,
-            decode_responses=True,
-            ssl=has_ssl,
-            ssl_cert_reqs=ssl_cert_reqs,
-        )
+        # Base configuration for Redis connection (this does not have ssl)
+        redis_config = {
+            "host": server,
+            "port": port,
+            "db": results_db_num + self.db_num,  # Increment db_num to avoid conflicts
+            "username": username,
+            "password": password,
+            "decode_responses": True,
+        }
+
+        # Add ssl settings if necessary
+        if CONFIG.results_backend.name == "rediss":
+            redis_config.update(
+                {
+                    "ssl": True,
+                    "ssl_cert_reqs": getattr(CONFIG.results_backend, "cert_reqs", "required"),
+                }
+            )
+
+        return redis.Redis(**redis_config)
