@@ -31,6 +31,7 @@ import logging
 import os
 import subprocess
 import time
+from typing import Callable
 
 import psutil
 
@@ -52,7 +53,6 @@ WORKER_INFO = {
     "pid": -1,
     "monitored": 1,  # This setting is for debug mode
     "num_unresponsive": 0,
-    "processing_work": 1,
 }
 
 
@@ -150,7 +150,7 @@ class CeleryManager:
 
         return True
 
-    def run(self):
+    def run(self, loop_condition: Callable = lambda: True):
         """
         Main manager loop for monitoring and managing Celery workers.
 
@@ -168,8 +168,8 @@ class CeleryManager:
             LOG.debug(f"MANAGER: setting manager key in redis to hold the following info {manager_info}")
             redis_connection.hset("manager", mapping=manager_info)
 
-            # TODO figure out what to do with "processing_work" entry for the merlin monitor
-            while True:  # TODO Make it so that it will stop after a list of workers is stopped
+            LOG.debug(f"loop condition: {loop_condition()}")
+            while loop_condition():  # TODO Make it so that it will stop after a list of workers is stopped
                 # Get the list of running workers
                 workers = redis_connection.keys()
                 LOG.debug(f"MANAGER: workers: {workers}")
@@ -178,6 +178,7 @@ class CeleryManager:
                 LOG.info(f"MANAGER: Monitoring {workers} workers")
 
                 # Check/ Ping each worker to see if they are still running
+                worker_results = {}
                 if workers:
                     worker_results = self.get_celery_workers_status(workers)
 

@@ -29,25 +29,30 @@
 ###############################################################################
 import logging
 import subprocess
+from typing import List, Tuple
 
 import psutil
 
 from merlin.managers.celerymanager import WORKER_INFO, CeleryManager, WorkerStatus
+from merlin.spec.specification import MerlinSpec
+from merlin.utils import verify_filepath
 
 
 LOG = logging.getLogger(__name__)
 
 
-def add_monitor_workers(workers: list):
+def add_monitor_workers(workers: List[Tuple[str, str]]):
     """
     Adds workers to be monitored by the celery manager.
-    :param list workers:        A list of tuples which includes (worker_name, pid)
+    
+    Args:
+        workers: A list of tuples which includes (worker_name, pid)
     """
     if workers is None or len(workers) <= 0:
         return
 
     LOG.info(
-        f"MANAGER: Attempting to have the manager monitor the following workers {[worker_name for worker_name, _ in workers]}."
+        f"MANAGER: Attempting to have the manager monitor the following workers {[worker_name for worker_name in workers]}."
     )
     monitored_workers = []
 
@@ -67,21 +72,45 @@ def add_monitor_workers(workers: list):
     LOG.info(f"MANAGER: Manager is monitoring the following workers {monitored_workers}.")
 
 
-def remove_monitor_workers(workers: list, worker_status: WorkerStatus = None, remove_entry: bool = True):
+def remove_monitor_workers(workers: List[str], worker_status: WorkerStatus = None, purge_entries: bool = True):
     """
-    Remove workers from being monitored by the celery manager.
-    :param list workers:        A worker names
+    Remove specific workers from being monitored by the celery manager.
+
+    Args:
+        workers: A list of workers to stop monitoring.
+        worker_status: A [`WorkerStatus`][merlin.managers.celerymanager.WorkerStatus] to set for the
+            workers we're unmonitoring.
+        purge_entries: A flag that signifies whether to delete the worker entries
+            from the Redis database or not.
     """
     if workers is None or len(workers) <= 0:
         return
+
     with CeleryManager.get_worker_status_redis_connection() as redis_connection:
-        for worker in workers:
-            if redis_connection.exists(worker):
-                redis_connection.hset(worker, "monitored", 0)
-                if worker_status is not None:
-                    redis_connection.hset(worker, "status", worker_status)
-                if remove_entry:
-                    redis_connection.delete(worker)
+        for worker_pattern in workers:
+            # Grab the matching workers from the Redis database
+            matching_workers = redis_connection.keys(f"*{worker_pattern}*")
+            LOG.debug(f"MANAGER: matching workers: {matching_workers}")
+            for worker in matching_workers:
+                worker_exists = redis_connection.exists(worker)
+                LOG.debug(f"{worker} exists: {worker_exists}")
+                LOG.debug(f"worker {worker} monitored (before unwatch) - {redis_connection.hget(worker, 'monitored')}")
+        
+                # If the worker exists, remove it from being monitored
+                if worker_exists:
+                    redis_connection.hset(worker, "monitored", 0)
+
+                    # Set the worker status if specified
+                    if worker_status is not None:
+                        redis_connection.hset(worker, "status", worker_status)
+
+                    # Delete the worker from both the status and worker args databases
+                    if purge_entries:
+                        redis_connection.delete(worker)
+                        with CeleryManager.get_worker_args_redis_connection() as worker_args_connection:
+                            worker_args_connection.delete(worker, f"{worker}_env")
+
+                LOG.debug(f"worker {worker} monitored (after unwatch) - {redis_connection.hget(worker, 'monitored')}")
 
 
 def is_manager_runnning() -> bool:
@@ -95,7 +124,7 @@ def is_manager_runnning() -> bool:
     return manager_status["status"] == WorkerStatus.running and psutil.pid_exists(manager_status["pid"])
 
 
-def run_manager(query_frequency: int = 60, query_timeout: float = 0.5, worker_timeout: int = 180) -> bool:
+def run_manager(query_frequency: int = 60, query_timeout: float = 0.5, worker_timeout: int = 180, loop_condition: bool = True) -> bool:
     """
     A process locking function that calls the celery manager with proper arguments.
 
@@ -104,7 +133,7 @@ def run_manager(query_frequency: int = 60, query_timeout: float = 0.5, worker_ti
     :param worker_timeout:      The sum total(query_frequency*tries) time before an attempt is made to restart worker.
     """
     celerymanager = CeleryManager(query_frequency=query_frequency, query_timeout=query_timeout, worker_timeout=worker_timeout)
-    celerymanager.run()
+    celerymanager.run(loop_condition=loop_condition)
 
 
 def start_manager(query_frequency: int = 60, query_timeout: float = 0.5, worker_timeout: int = 180) -> bool:
@@ -143,3 +172,73 @@ def stop_manager() -> bool:
         psutil.Process(manager_pid).terminate()
         return True
     return False
+
+
+def resolve_workers(workers: List[str]) -> List[str]:
+    """
+    Resolve the list of workers, checking if the first entry is a specification file.
+
+    Args:
+        workers (List[str]): A list of worker names or a specification file.
+
+    Returns:
+        The resolved list of worker names.
+    """
+    # Load the worker names from the spec file (if provided)
+    if len(workers) == 1 and workers[0].endswith(".yaml"):
+        spec_file = verify_filepath(spec_filepath)
+        spec = MerlinSpec.load_specification(spec_file)
+        return spec.get_worker_names()
+
+    # Otherwise, user gave us a list of workers
+    return workers
+
+
+def watch_workers(workers: List[str]):
+    """
+    Start monitoring the specified workers.
+
+    Args:
+        workers: A list of worker names or a specification file.
+    """
+    resolved_workers = resolve_workers(workers)
+    add_monitor_workers(resolved_workers)
+
+
+def unwatch_all_workers(purge_entries: bool = True):
+    """
+    Remove all workers from being monitored by the celery manager.
+
+    Args:
+        purge_entries: A flag that signifies whether to delete the worker entries
+            from the Redis database or not.
+    """
+    with CeleryManager.get_worker_status_redis_connection() as redis_connection:
+        # Retrieve all keys that represent monitored workers
+        workers = redis_connection.keys()
+        workers.remove("manager")
+
+        # If there are no workers in the Redis database, return early
+        if not workers:
+            LOG.warning("MANAGER: No workers exist in the Redis database.")
+            return
+
+        # Call the remove_monitor_workers function to unmonitor all workers
+        LOG.info(f"MANAGER: Unwatching the following workers - {workers}")
+        remove_monitor_workers(workers, purge_entries=purge_entries)
+
+
+def unwatch_workers(workers: List[str], purge_entries: bool):
+    """
+    Stop monitoring the specified workers.
+
+    Args:
+        workers: A list of worker names (or 'all') or a specification file.
+        purge_entries: A flag that signifies whether to delete the worker entries
+            from the Redis database or not.
+    """
+    if workers[0] == "all":  # Unwatch all workers
+        unwatch_all_workers(purge_entries=purge_entries)
+    else:  # Unwatch specific workers
+        resolved_workers = resolve_workers(workers)
+        remove_monitor_workers(resolved_workers, purge_entries=purge_entries)

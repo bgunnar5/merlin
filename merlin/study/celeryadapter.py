@@ -502,22 +502,15 @@ def check_celery_workers_processing(queues_in_spec: List[str], app: Celery) -> b
     """
     # Query celery for active tasks
     active_tasks = app.control.inspect().active()
-    result = False
 
-    with CeleryManager.get_worker_status_redis_connection() as redis_connection:
-        # Search for the queues we provided if necessary
-        if active_tasks is not None:
-            for worker, tasks in active_tasks.items():
-                for task in tasks:
-                    if task["delivery_info"]["routing_key"] in queues_in_spec:
-                        result = True
+    # Search for the queues we provided if necessary
+    if active_tasks is not None:
+        for tasks in active_tasks.values():
+            for task in tasks:
+                if task["delivery_info"]["routing_key"] in queues_in_spec:
+                    return True
 
-                # Set the entry in the Redis DB for the manager to signify if the worker
-                # is still doing work
-                worker_still_processing = 1 if result else 0
-                redis_connection.hset(worker, "processing_work", worker_still_processing)
-
-    return result
+    return False
 
 
 def _get_workers_to_start(spec, steps):
@@ -773,7 +766,9 @@ def launch_celery_worker(worker_cmd, worker_list, kwargs):
         process = subprocess.Popen(worker_cmd, **kwargs)  # pylint: disable=R1732
         # Get the worker name from worker_cmd and add to be monitored by celery manager
         worker_cmd_list = worker_cmd.split()
-        worker_name = worker_cmd_list[worker_cmd_list.index("-n") + 1].replace("%h", kwargs["env"]["HOSTNAME"])
+        worker_name = worker_cmd_list[
+            len(worker_cmd_list) - worker_cmd_list[::-1].index('-n')
+        ].replace("%h", kwargs["env"]["HOSTNAME"])
         worker_name = "celery@" + worker_name
         worker_list.append(worker_cmd)
 
@@ -798,7 +793,7 @@ def launch_celery_worker(worker_cmd, worker_list, kwargs):
             redis_connection.hmset(name=worker_name, mapping=args)
 
         # Adding the worker to redis db to be monitored
-        add_monitor_workers(workers=((worker_name, process.pid),))
+        add_monitor_workers(workers=[(worker_name, process.pid)])
         LOG.info(f"Added {worker_name} to be monitored")
     except Exception as e:  # pylint: disable=C0103
         LOG.error(f"Cannot start celery workers, {e}")
@@ -904,7 +899,7 @@ def stop_celery_workers(queues=None, spec_worker_names=None, worker_regex=None, 
         LOG.info(f"Sending stop to these workers: {workers_to_stop}")
         app.control.broadcast("shutdown", destination=workers_to_stop)
         remove_entry = False if debug_lvl == "DEBUG" else True
-        remove_monitor_workers(workers=workers_to_stop, worker_status=WorkerStatus.stopped, remove_entry=remove_entry)
+        remove_monitor_workers(workers=workers_to_stop, worker_status=WorkerStatus.stopped, purge_entries=remove_entry)
     else:
         LOG.warning("No workers found to stop")
 

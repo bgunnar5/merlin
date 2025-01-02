@@ -57,7 +57,7 @@ from merlin.log_formatter import setup_logging
 from merlin.server.server_commands import config_server, init_server, restart_server, start_server, status_server, stop_server
 from merlin.spec.expansion import RESERVED, get_spec_with_expansion
 from merlin.spec.specification import MerlinSpec
-from merlin.study.celerymanageradapter import run_manager, start_manager, stop_manager
+from merlin.study.celerymanageradapter import run_manager, start_manager, stop_manager, watch_workers, unwatch_workers
 from merlin.study.status import DetailedStatus, Status
 from merlin.study.status_constants import VALID_RETURN_CODES, VALID_STATUS_FILTERS
 from merlin.study.status_renderers import status_renderer_factory
@@ -426,6 +426,10 @@ def process_manager(args: Namespace):
             LOG.info("Manager stopped successfully.")
         else:
             LOG.error("Unable to stop manager.")
+    elif args.command == "watch":
+        watch_workers(args.workers)
+    elif args.command == "unwatch":
+        unwatch_workers(args.workers, args.purge)
     else:
         print("Run manager with a command. Try 'merlin manager -h' for more details")
 
@@ -443,10 +447,24 @@ def process_monitor(args):
     # Give the user time to queue up jobs in case they haven't already
     time.sleep(args.sleep)
 
-    # Check if we still need our allocation
-    while router.check_merlin_status(args, spec):
-        LOG.info("Monitor: found tasks in queues and/or tasks being processed")
-        time.sleep(args.sleep)
+    if args.manager:
+        # TODO how do we handle sleep/query frequency
+        # Run the manager with the loop condition being our check to see if the allocation should stay alive
+        run_manager(  # This is a blocking process
+            query_frequency=args.query_frequency,
+            query_timeout=args.query_timeout,
+            worker_timeout=args.worker_timeout,
+            loop_condition=lambda: router.check_merlin_status(args, spec),
+        )
+        LOG.info("Manager stopped successfully.")
+    else:
+        if args.query_frequency or args.query_timeout or args.worker_timeout:
+            LOG.warning("The `-qf`, `-qt`, and `-wt` options can only be used if the manager is enabled with `-m`.")
+
+        # Check if we still need our allocation
+        while router.check_merlin_status(args, spec):
+            LOG.info("Monitor: found tasks in queues and/or tasks being processed")
+            time.sleep(args.sleep)
     LOG.info("Monitor: ... stop condition met")
 
 
@@ -1003,6 +1021,40 @@ def generate_worker_touching_parsers(subparsers: ArgumentParser) -> None:
         formatter_class=ArgumentDefaultsHelpFormatter,
     )
     manager_stop.set_defaults(func=process_manager)
+    manager_watch = manager_commands.add_parser(
+        "watch",
+        help="Start watching certain workers",
+        description="Watch workers",
+        formatter_class=ArgumentDefaultsHelpFormatter,
+    )
+    manager_watch.add_argument(
+        "workers",
+        type=str,
+        action="store",
+        nargs="+",
+        help="A space-delimited list of workers to start watching or a specification file to pull workers from."
+    )
+    manager_unwatch = manager_commands.add_parser(
+        "unwatch",
+        help="Stop watching certain workers",
+        description="Unwatch workers",
+        formatter_class=ArgumentDefaultsHelpFormatter,
+    )
+    manager_unwatch.add_argument(
+        "workers",
+        type=str,
+        action="store",
+        nargs="+",
+        help="A space-delimited list of workers to stop watching (use 'all' \
+              to stop watching all currently watched workers) or a specification \
+              file to pull workers from.",
+    )
+    manager_unwatch.add_argument(
+        "-p",
+        "--purge",
+        action="store_true",
+        help="Purge the worker from the Redis database",
+    )
 
     # merlin monitor
     monitor: ArgumentParser = subparsers.add_parser(
@@ -1043,6 +1095,14 @@ def generate_worker_touching_parsers(subparsers: ArgumentParser) -> None:
         help="Sleep duration between checking for workers.\
                                     Default: %(default)s",
     )
+    monitor.add_argument(
+        "-m",
+        "--manager",
+        action="store_true",
+        help="Activates a worker manager process to help keep all \
+              workers alive for the duration of the allocation."
+    )
+    add_manager_options(monitor)
     monitor.set_defaults(func=process_monitor)
 
 
