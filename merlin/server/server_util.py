@@ -92,7 +92,7 @@ class ContainerConfig:  # pylint: disable=R0902
     # Default values for configuration
     FORMAT = "singularity"
     IMAGE_TYPE = "redis"
-    IMAGE_NAME = "redis_latest.sif"
+    IMAGE_NAME = "redis.sif"
     REDIS_URL = "docker://redis"
     CONFIG_FILE = "redis.conf"
     CONFIG_DIR = os.path.abspath("./merlin_server/")

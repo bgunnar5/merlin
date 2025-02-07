@@ -62,7 +62,7 @@ LOG = logging.getLogger("merlin")
 
 # Default values for configuration
 CONFIG_DIR = os.path.abspath("./merlin_server/")
-IMAGE_NAME = "redis_latest.sif"
+IMAGE_NAME = "redis.sif"
 PROCESS_FILE = "merlin_server.pf"
 CONFIG_FILE = "redis.conf"
 REDIS_URL = "docker://redis"
@@ -309,16 +309,43 @@ def pull_server_image() -> bool:
     image_url = server_config.container.get_image_url()
     image_path = server_config.container.get_image_path()
 
+    LOG.debug(f"config_dir: {config_dir}")
+    LOG.debug(f"config_file: {config_file}")
+    LOG.debug(f"image_url: {image_url}")
+    LOG.debug(f"image_path: {image_path}")
+
     if not os.path.exists(image_path):
         LOG.info(f"Fetching redis image from {image_url}")
-        subprocess.run(
-            server_config.container_format.get_pull_command()
-            .strip("\\")
-            .format(command=server_config.container_format.get_command(), image=image_path, url=image_url)
-            .split(),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
+        try:
+            subprocess.run(
+                server_config.container_format.get_pull_command()
+                .strip("\\")
+                .format(command=server_config.container_format.get_command(), image=image_path, url=image_url)
+                .split(),
+                capture_output=True,
+                text=True,
+                check=True,  # This raises an exception if the command fails
+            )
+
+            # Log the output if the command succeeds
+            LOG.info(f"Redis image successfully pulled from {image_url}.")
+
+        except subprocess.SubprocessError as e:
+            # Log the error if the command fails
+            LOG.warning(f"Failed to fetch the latest Redis image. Subprocess failed with return code {e.returncode}.")
+            LOG.warning("Defaulting to using the Redis image saved in Merlin (Redis v7.4.2).")
+            LOG.debug(f"Pull image command: {e.cmd}")
+            LOG.debug(f"Pull image output: {e.output.strip()}")
+            LOG.debug(f"Pull image error: {e.stderr.strip()}")
+
+            default_redis_img = os.path.join(os.path.dirname(__file__), 'redis_7.4.2.sif')
+
+            subprocess.run(
+                f"cp {default_redis_img} {image_path}".split(),  # Copy to merlin_server dir
+                capture_output=True,
+                text=True,
+                check=True,
+            )
     else:
         LOG.info(f"{image_path} already exists.")
 

@@ -4,7 +4,7 @@ container:
     #Type of container that is used
     image_type: redis
     # The image name
-    image: redis_latest.sif
+    image: redis.sif
     # The url to pull the image from
     url: docker://redis
     # The config file
