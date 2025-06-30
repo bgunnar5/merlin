@@ -25,7 +25,7 @@ from merlin.common.dumper import dump_handler
 from merlin.display import ANSI_COLORS, display_status_summary, display_status_task_by_task
 from merlin.spec.expansion import get_spec_with_expansion
 from merlin.spec.specification import MerlinSpec
-from merlin.study.status_constants import (
+from merlin.status.status_constants import (
     ALL_VALID_FILTERS,
     CELERY_KEYS,
     NON_WORKSPACE_KEYS,
@@ -33,7 +33,7 @@ from merlin.study.status_constants import (
     VALID_RETURN_CODES,
     VALID_STATUS_FILTERS,
 )
-from merlin.study.status_renderers import status_renderer_factory
+from merlin.status.status_renderers import status_renderer_factory
 from merlin.utils import (
     apply_list_of_regex,
     convert_timestring,

@@ -23,7 +23,7 @@ from kombu import Connection as KombuConnection
 from tabulate import tabulate
 
 from merlin.ascii_art import banner_small
-from merlin.study.status_renderers import status_renderer_factory
+from merlin.status.status_renderers import status_renderer_factory
 from merlin.utils import get_package_versions
 
 

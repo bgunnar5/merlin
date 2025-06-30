@@ -22,7 +22,7 @@ from maestrowf.interfaces.script import SubmissionRecord
 
 from merlin.common.enums import ReturnCode
 from merlin.study.script_adapter import MerlinScriptAdapter
-from merlin.study.status import read_status, write_status
+from merlin.status.status import read_status, write_status
 from merlin.utils import needs_merlin_expansion
 
 

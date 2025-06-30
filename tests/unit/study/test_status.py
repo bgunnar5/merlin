@@ -19,8 +19,8 @@ from deepdiff import DeepDiff
 from filelock import Timeout
 
 from merlin.spec.expansion import get_spec_with_expansion
-from merlin.study.status import Status, read_status, status_conflict_handler, write_status
-from merlin.study.status_constants import NON_WORKSPACE_KEYS
+from merlin.status.status import Status, read_status, status_conflict_handler, write_status
+from merlin.status.status_constants import NON_WORKSPACE_KEYS
 from tests.unit.study.status_test_files import shared_tests, status_test_variables
 
 
@@ -55,7 +55,7 @@ class TestStatusReading:
         """
 
         # Set the mock to raise a timeout
-        mock_filelock = mocker.patch("merlin.study.status.FileLock")
+        mock_filelock = mocker.patch("merlin.status.status.FileLock")
         mock_lock = mocker.MagicMock()
         mock_lock.acquire.side_effect = Timeout(self.lock_file)
         mock_filelock.return_value = mock_lock
@@ -81,7 +81,7 @@ class TestStatusReading:
         """
 
         # Set the mock to raise a timeout
-        mock_filelock = mocker.patch("merlin.study.status.FileLock")
+        mock_filelock = mocker.patch("merlin.status.status.FileLock")
         mock_lock = mocker.MagicMock()
         mock_lock.acquire.side_effect = Timeout(self.lock_file)
         mock_filelock.return_value = mock_lock
@@ -185,7 +185,7 @@ class TestStatusReading:
         """
 
         # Set the mock to raise an exception
-        mock_filelock = mocker.patch("merlin.study.status.FileLock")
+        mock_filelock = mocker.patch("merlin.status.status.FileLock")
         mock_lock = mocker.MagicMock()
         mock_lock.acquire.side_effect = exception()
         mock_filelock.return_value = mock_lock
@@ -210,7 +210,7 @@ class TestStatusReading:
         """
 
         # Set the mock to raise an exception
-        mock_filelock = mocker.patch("merlin.study.status.FileLock")
+        mock_filelock = mocker.patch("merlin.status.status.FileLock")
         mock_lock = mocker.MagicMock()
         mock_lock.acquire.side_effect = exception()
         mock_filelock.return_value = mock_lock
@@ -265,7 +265,7 @@ class TestStatusWriting:
         """
 
         # Set the mock to raise an exception
-        mock_filelock = mocker.patch("merlin.study.status.FileLock")
+        mock_filelock = mocker.patch("merlin.status.status.FileLock")
         mock_lock = mocker.MagicMock()
         mock_lock.acquire.side_effect = exception()
         mock_filelock.return_value = mock_lock

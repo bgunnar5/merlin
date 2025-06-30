@@ -27,9 +27,9 @@ from argparse import ArgumentParser, Namespace
 from merlin.ascii_art import banner_small
 from merlin.cli.commands.command_entry_point import CommandEntryPoint
 from merlin.spec.expansion import get_spec_with_expansion
-from merlin.study.status import DetailedStatus, Status
-from merlin.study.status_constants import VALID_RETURN_CODES, VALID_STATUS_FILTERS
-from merlin.study.status_renderers import status_renderer_factory
+from merlin.status.status import DetailedStatus, Status
+from merlin.status.status_constants import VALID_RETURN_CODES, VALID_STATUS_FILTERS
+from merlin.status.status_renderers import status_renderer_factory
 from merlin.utils import verify_dirpath, verify_filepath
 
 

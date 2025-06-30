@@ -16,7 +16,7 @@ from rich.table import Table
 from rich.text import Text
 from rich.theme import Theme
 
-from merlin.study.status_constants import NON_WORKSPACE_KEYS
+from merlin.status.status_constants import NON_WORKSPACE_KEYS
 
 
 LOG = logging.getLogger(__name__)

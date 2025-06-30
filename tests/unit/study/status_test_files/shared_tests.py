@@ -20,7 +20,7 @@ from deepdiff import DeepDiff
 from tabulate import tabulate
 
 from merlin.display import ANSI_COLORS
-from merlin.study.status import DetailedStatus, Status
+from merlin.status.status import DetailedStatus, Status
 from tests.unit.study.status_test_files import status_test_variables
 
 

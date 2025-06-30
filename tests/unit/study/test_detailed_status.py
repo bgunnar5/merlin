@@ -19,7 +19,7 @@ import yaml
 from deepdiff import DeepDiff
 
 from merlin.spec.expansion import get_spec_with_expansion
-from merlin.study.status import DetailedStatus
+from merlin.status.status import DetailedStatus
 from tests.unit.study.status_test_files import shared_tests, status_test_variables
 
 

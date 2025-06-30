@@ -37,8 +37,8 @@ from merlin.db_scripts.merlin_db import MerlinDatabase
 from merlin.exceptions import HardFailException, InvalidChainException, RestartException, RetryException
 from merlin.router import stop_workers
 from merlin.spec.expansion import parameter_substitutions_for_cmd, parameter_substitutions_for_sample
+from merlin.status.status import read_status, status_conflict_handler
 from merlin.study.dag import DAG
-from merlin.study.status import read_status, status_conflict_handler
 from merlin.study.step import Step
 from merlin.study.study import MerlinStudy
 from merlin.utils import dict_deep_merge
