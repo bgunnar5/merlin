@@ -18,9 +18,10 @@ from abc import ABC, abstractmethod
 from dataclasses import Field, asdict, dataclass, field
 from dataclasses import fields as dataclass_fields
 from datetime import datetime
-from typing import Dict, List, Set, Tuple, Type, TypeVar
+from typing import Any, Dict, List, Set, Tuple, Type, TypeVar
 
 from filelock import FileLock
+from maestrowf.abstracts.enums import State
 
 from merlin.common.enums import WorkerStatus
 
@@ -451,6 +452,39 @@ class PhysicalWorkerModel(BaseDataModel):  # pylint: disable=too-many-instance-a
         ]
 
 
-# TODO create a StepInfo class to store information about a step
-# - Can probably link this to status
-# - Each step should have entries for parameters/samples but only those that are actually used in the step
+@dataclass
+class StepModel(BaseDataModel):
+    """
+    TODO how do we determine uniqueness of a step? Once determined, do we link this to StudyModel? Will RunModel need this?
+    """
+    id: str = field(default_factory=lambda: str(uuid.uuid4()))  # pylint: disable=invalid-name
+    name: str = None
+    description: str = None
+    cmd: str = None
+    restart_cmd: str = None
+    settings: Dict[str, Any] = None
+    status: State = State.INITIALIZED  # TODO do we want status here? Would make more sense at the TaskModel level I think...
+    tasks: List[str] = field(default_factory=list)  # TODO link this to the TaskModel? If we remove tasks in batches do we want this?
+    total_tasks: int = 0
+    # TODO do we even want the below items?
+    # cmd_params: List[str] = field(default_factory=list)  # Just a list of the tokens used, tasks will have info on actual values
+    # cmd_samples: List[str] = field(default_factory=list)  # Just a list of the tokens used
+    # restart_params: List[str] = field(default_factory=list)
+    # restart_samples: List[str] = field(default_factory=list)
+
+    def __post_init__(self):
+        """
+        Go through the cmd and restart_cmd (if there is one), and determine which parameters and samples
+        are used. Store these in the appropriate location in this model.
+        """
+        # TODO is this even possible to do here? We need the params and samples tokens from the spec
+
+    @property
+    def fields_allowed_to_be_updated(self) -> List[str]:
+        """
+        Define the fields that are allowed to be updated for a `StepModel` object.
+
+        Returns:
+            A list of fields that are allowed to be updated in this class.
+        """
+        return ["status"]
