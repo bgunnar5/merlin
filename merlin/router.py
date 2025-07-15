@@ -237,7 +237,7 @@ def get_workers(task_server: str) -> List[str]:
         return []
 
 
-def stop_workers(task_server: str, spec_worker_names: List[str], queues: List[str], workers_regex: str):
+def stop_workers(task_server: str, spec_worker_names: List[str], queues: List[str], workers_regex: str, debug_lvl: str):
     """
     This function sends a command to stop workers that match the specified
     criteria from the designated task server.
@@ -248,12 +248,13 @@ def stop_workers(task_server: str, spec_worker_names: List[str], queues: List[st
             in a specification.
         queues: A list of queues from which to stop associated workers.
         workers_regex: A regex pattern used to filter the workers to stop.
+        debug_lvl: The debug level to use (INFO, DEBUG, ERROR, etc.)
     """
     LOG.info("Stopping workers...")
 
     if task_server == "celery":  # pylint: disable=R1705
         # Stop workers
-        stop_celery_workers(queues, spec_worker_names, workers_regex)
+        stop_celery_workers(queues, spec_worker_names, workers_regex, debug_lvl)
     else:
         LOG.error("Celery is not specified as the task server!")
 
