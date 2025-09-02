@@ -179,7 +179,7 @@ else:
     app.conf.update(**override_dict)
 
 # auto-discover tasks
-app.autodiscover_tasks(["merlin.common"])
+app.autodiscover_tasks(["merlin.tasks"])
 
 
 @celeryd_init.connect

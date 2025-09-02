@@ -53,7 +53,7 @@ def run_celery(study: MerlinStudy, run_mode: str = None):
     # Pylint complains about circular import between merlin.common.tasks -> merlin.router -> merlin.study.celeryadapter
     # For now I think this is still the best way to do this so we'll ignore it
     from merlin.celery import app  # pylint: disable=C0415
-    from merlin.common.tasks import queue_merlin_study  # pylint: disable=C0415, R0401
+    from merlin.tasks.tasks import queue_merlin_study  # pylint: disable=import-outside-toplevel
 
     adapter_config = study.get_adapter_config(override_type="local")
 
