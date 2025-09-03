@@ -122,6 +122,8 @@ class MerlinLSFScriptAdapter(SlurmScriptAdapter):
             "walltime",
         }
 
+        self._extension = ".sh"
+
     def get_priority(self, priority: StepPriority):
         """
         This is implemented to override the abstract method and fix a pylint error.
@@ -272,6 +274,8 @@ class MerlinSlurmScriptAdapter(SlurmScriptAdapter):
             "task_queue",
         ]
         self._unsupported: Set[str] = set(list(self._unsupported) + new_unsupported)
+
+        self._extension = ".sh"
 
     def get_priority(self, priority: StepPriority):
         """
@@ -452,6 +456,8 @@ class MerlinFluxScriptAdapter(MerlinSlurmScriptAdapter):
             "slurm",
         ]
         self._unsupported: Set[str] = set(new_unsupported)  # noqa
+
+        self._extension = ".sh"
 
     def get_priority(self, priority: StepPriority):
         """
