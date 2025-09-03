@@ -108,6 +108,63 @@ def safe_add_to_chord(
         task.add_to_chord(signature_or_chord, lazy=lazy)
 
 
+def safe_batch_add_to_chord(
+    task: Task,
+    signatures: List[Signature],
+    lazy: bool = False,
+    lock_timeout: int = 5,
+    max_wait: int = 10,
+):
+    """Add multiple signatures to chord in a single lock acquisition."""
+    if not signatures:
+        return
+        
+    try:
+        chord_id = task.request.chord["options"]["task_id"]
+        
+        with DistributedLock(chord_id=chord_id, timeout=lock_timeout, max_wait=max_wait):
+            LOG.debug(f"Batch adding {len(signatures)} signatures to chord: {chord_id}")
+            for sig in signatures:
+                task.add_to_chord(sig, lazy=lazy)
+            LOG.debug(f"Successfully batch added to chord: {chord_id}")
+            
+    except Exception as e:
+        LOG.error(f"Failed to batch add to chord: {e}")
+        # Fallback to individual additions without lock
+        LOG.warning("Falling back to unsafe chord addition")
+        for sig in signatures:
+            task.add_to_chord(sig, lazy=lazy)
+
+
+def smart_add_to_chord(
+    task: Task,
+    signature_or_signatures: Union[Signature, List[Signature]],
+    lazy: bool = False,
+    use_lock: bool = None,
+):
+    """Add to chord with conditional locking based on context."""
+    
+    # Auto-detect if locking is needed based on task count
+    if use_lock is None:
+        if isinstance(signature_or_signatures, list):
+            use_lock = len(signature_or_signatures) > 10  # Only lock for larger batches
+        else:
+            use_lock = False  # Single additions might not need locking
+    
+    if use_lock:
+        if isinstance(signature_or_signatures, list):
+            safe_batch_add_to_chord(task, signature_or_signatures, lazy)
+        else:
+            safe_add_to_chord(task, signature_or_signatures, lazy)
+    else:
+        # Use native Celery method for better performance
+        if isinstance(signature_or_signatures, list):
+            for sig in signature_or_signatures:
+                task.add_to_chord(sig, lazy=lazy)
+        else:
+            task.add_to_chord(signature_or_signatures, lazy=lazy)
+
+
 @shared_task(  # noqa: C901
     bind=True,
     autoretry_for=retry_exceptions,
@@ -250,7 +307,6 @@ def merlin_step(self: Task, *args: Any, **kwargs: Any) -> ReturnCode:  # noqa: C
             else:
                 LOG.debug(f"adding {next_in_chain} to chord")
                 safe_add_to_chord(self, next_in_chain, lazy=False)
-                # self.add_to_chord(next_in_chain, lazy=False)
         return result
 
     LOG.error("Failed to find step!")
@@ -444,7 +500,7 @@ def add_merlin_expanded_chain_to_chord(  # pylint: disable=R0913,R0914
                 if self.request.is_eager:
                     next_step.delay()
                 else:
-                    safe_add_to_chord(self, next_step, lazy=False)
+                    smart_add_to_chord(self, next_step, lazy=False)
                     # self.add_to_chord(next_step, lazy=False)
                 LOG.debug(f"queued for samples[{next_index.min}:{next_index.max}] in for {chain_} in {next_index.name}")
         except retry_exceptions as e:
@@ -525,6 +581,7 @@ def launch_chain(self: Task, chain_1d: List[Signature], condense_sig: Signature 
                 safe_add_to_chord(self, sample_chord, lazy=False)
             # Case b: no condensing is needed so just add all the signatures to the chord
             else:
+                smart_add_to_chord(self, chain_1d, lazy=False)
                 chord_id = self.request.chord["options"]["task_id"]
                 with DistributedLock(chord_id=chord_id):
                     for sig in chain_1d:
@@ -863,7 +920,7 @@ def expand_tasks_with_samples(  # pylint: disable=R0913,R0914
                         sig.delay()
                     else:
                         LOG.info(f"queuing expansion task {next_index.min}:{next_index.max}")
-                        safe_add_to_chord(self, sig, lazy=False)
+                        smart_add_to_chord(self, sig, lazy=False)
                         # self.add_to_chord(sig, lazy=False)
                     LOG.info(f"merlin expansion task {next_index.min}:{next_index.max} queued")
                     found_tasks = True

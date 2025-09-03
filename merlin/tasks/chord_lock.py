@@ -27,7 +27,7 @@ class DistributedLock:
         self,
         chord_id: str,
         timeout: int = 5,
-        retry_delay: float = 0.001, 
+        retry_delay: float = 0.01, 
         blocking: bool = True,
         max_wait: int = 10,
     ):
@@ -84,9 +84,9 @@ class DistributedLock:
                 LOG.warning(f"Lock timeout {self.key} after {self.max_wait}s")
                 return False
             
-            # Exponential backoff with jitter
+            # Less aggressive backoff
             time.sleep(current_delay)
-            current_delay = min(current_delay * 1.5, 0.1)  # Cap at 100ms
+            current_delay = min(current_delay * 1.2, 0.5)  # Cap at 500ms
     
     def release(self) -> bool:
         """
