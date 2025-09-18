@@ -21,7 +21,7 @@ from maestrowf.datastructures.core.study import StudyStep
 from maestrowf.interfaces.script import SubmissionRecord
 
 from merlin.common.enums import ReturnCode
-from merlin.study.script_adapter import MerlinScriptAdapter
+from merlin.script_adapters.script_adapter_factory import MerlinScriptAdapterFactory
 from merlin.study.status import read_status, write_status
 from merlin.utils import needs_merlin_expansion
 
@@ -659,7 +659,18 @@ class Step:
             batch_type = batch.get("type", default_batch_type)
             adapter_config.update({"batch_type": batch_type})
 
-        adapter = MerlinScriptAdapter(**adapter_config)
+        # TODO in Merlin 2.0 we'll likely use dataclass for this instead so this won't be necessary
+        if "host" not in adapter_config:
+            adapter_config["host"] = "None"
+        if "bank" not in adapter_config:
+            adapter_config["bank"] = "None"
+        if "queue" not in adapter_config:
+            adapter_config["queue"] = "None"
+
+        adapter = MerlinScriptAdapterFactory.get_adapter(adapter_config["batch_type"])(**adapter_config)
+
+        LOG.info(f"adapter class: {adapter.__class__.name}")
+
         LOG.debug(f"Maestro step config = {adapter_config}")
 
         # Preserve the default shell if the step shell is different
