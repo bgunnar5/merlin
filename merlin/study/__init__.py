@@ -16,8 +16,6 @@ Modules:
         Task Queue, enabling distributed task execution.
     dag.py: Defines the Merlin `DAG` class, which represents the Directed Acyclic Graph
         structure of a study's workflow.
-    script_adapter.py: Contains functionality for adapting bash scripts to work with
-        supported schedulers, including Flux, LSF, and Slurm.
     status_constants.py: Defines constants used by the `status` module and its renderers,
         helping to avoid circular import issues.
     status_renderers.py: Handles the creation of formatted, task-by-task status displays
