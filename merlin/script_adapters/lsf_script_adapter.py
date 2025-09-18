@@ -11,7 +11,7 @@ from typing import Dict, Set, Tuple
 
 from maestrowf.abstracts.enums import StepPriority
 from maestrowf.datastructures.core.study import StudyStep
-from maestrowf.interfaces.script.slurmscriptadapter import SlurmScriptAdapter
+from maestrowf.interfaces.script.lsfscriptadapter import LSFScriptAdapter
 
 from merlin.script_adapters.submission_mixin import MerlinSubmissionMixin
 from merlin.script_adapters.utils import setup_vlaunch
@@ -20,7 +20,7 @@ from merlin.script_adapters.utils import setup_vlaunch
 LOG = logging.getLogger(__name__)
 
 
-class MerlinLSFScriptAdapter(MerlinSubmissionMixin, SlurmScriptAdapter):
+class MerlinLSFScriptAdapter(MerlinSubmissionMixin, LSFScriptAdapter):
     """
     A `SchedulerScriptAdapter` class for SLURM blocking parallel launches.
     The `MerlinLSFScriptAdapter` uses non-blocking submits for executing LSF parallel jobs
@@ -82,6 +82,8 @@ class MerlinLSFScriptAdapter(MerlinSubmissionMixin, SlurmScriptAdapter):
             "walltime",
         }
 
+        self._extension = "sh"
+
     def get_priority(self, priority: StepPriority):
         """
         This is implemented to override the abstract method and fix a pylint error.
@@ -124,7 +126,7 @@ class MerlinLSFScriptAdapter(MerlinSubmissionMixin, SlurmScriptAdapter):
             nodes = 1
 
         args = [
-            # SLURM srun command
+            # LSF jsrun command
             self._cmd_flags["cmd"],
             # Processors segment
             self._cmd_flags["ntasks"],

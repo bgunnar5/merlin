@@ -669,8 +669,6 @@ class Step:
 
         adapter = MerlinScriptAdapterFactory.get_adapter(adapter_config["batch_type"])(**adapter_config)
 
-        LOG.info(f"adapter class: {adapter.__class__.name}")
-
         LOG.debug(f"Maestro step config = {adapter_config}")
 
         # Preserve the default shell if the step shell is different

@@ -11,10 +11,8 @@ from typing import Dict, Set, Tuple, Union
 
 from maestrowf.abstracts.enums import StepPriority
 from maestrowf.datastructures.core.study import StudyStep
+from maestrowf.interfaces.script.fluxscriptadapter import FluxScriptAdapter
 
-from merlin.script_adapters.slurm_script_adapter import (
-    MerlinSlurmScriptAdapter,  # TODO replace this with Maestro flux script adapter
-)
 from merlin.script_adapters.submission_mixin import MerlinSubmissionMixin
 from merlin.script_adapters.utils import setup_vlaunch
 from merlin.utils import convert_timestring
@@ -23,7 +21,7 @@ from merlin.utils import convert_timestring
 LOG = logging.getLogger(__name__)
 
 
-class MerlinFluxScriptAdapter(MerlinSubmissionMixin, MerlinSlurmScriptAdapter):
+class MerlinFluxScriptAdapter(MerlinSubmissionMixin, FluxScriptAdapter):
     """
     A `SchedulerScriptAdapter` class for flux blocking parallel launches.
 
@@ -88,6 +86,8 @@ class MerlinFluxScriptAdapter(MerlinSubmissionMixin, MerlinSlurmScriptAdapter):
         ]
         self._unsupported: Set[str] = set(new_unsupported)  # noqa
 
+        self._extension = "sh"
+
     def get_priority(self, priority: StepPriority):
         """
         This is implemented to override the abstract method and fix a pylint error.
@@ -97,6 +97,18 @@ class MerlinFluxScriptAdapter(MerlinSubmissionMixin, MerlinSlurmScriptAdapter):
                 [`StepPriority`](https://maestrowf.readthedocs.io/en/latest/Maestro/reference_guide/api_reference/abstracts/enums/index.html#maestrowf.abstracts.enums.StepPriority)
                 enum representing priorty.
         """
+
+    def get_header(self, step: StudyStep) -> str:
+        """
+        Generate the header present at the top of Flux execution scripts.
+
+        Args:
+            step: A Maestro StudyStep instance that contains parameters relevant to the execution.
+
+        Returns:
+            A string of the header based on internal batch parameters and the parameter step.
+        """
+        return f"#!{self._exec}"
 
     def time_format(self, val: Union[str, int]) -> str:
         """
